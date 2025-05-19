@@ -39,7 +39,7 @@ interface IdeaFromDB {
 
 interface ApiError { detail: string; }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'; // Usar variable de entorno
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://genesisai-backend.onrender.com'; // Usar variable de entorno
 
 function MyIdeasContent() {
   const { user, token, isLoading: authIsLoading, isAuthenticated } = useAuth();

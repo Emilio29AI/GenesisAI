@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; 
 import { toast } from 'react-toastify'; // Para notificaciones
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://genesisai-backend.onrender.com';
 
 function SignupPageContent() {
   const [email, setEmail] = useState('');

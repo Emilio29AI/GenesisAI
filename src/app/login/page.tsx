@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; // Para redirección
 import { toast } from 'react-toastify'; // Para notificaciones más amigables
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://genesisai-backend.onrender.com';
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');

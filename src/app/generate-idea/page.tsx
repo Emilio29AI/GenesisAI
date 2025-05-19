@@ -31,7 +31,7 @@ interface GeneratedIdea { id?: number; idea_name: string; idea_description: stri
 interface ApiError { detail: string; }
 
 const SESSION_STORAGE_KEY = 'tempGeneratedIdeas';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'; // Usar variable de entorno para la URL del API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://genesisai-backend.onrender.com'; // Usar variable de entorno para la URL del API
 
 const CORE_VALUES_OPTIONS = [
   "Innovación", "Sostenibilidad", "Impacto Social", "Eficiencia", 

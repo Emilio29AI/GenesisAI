@@ -1,10 +1,10 @@
 // app/idea/[ideaId]/report/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react'; // Añadido React y Suspense
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import html2pdf from 'html2pdf.js'; // Con @types/html2pdf.js instalado, esto debería estar bien
+import html2pdf from 'html2pdf.js'; 
 
 // --- Iconos SVG ---
 const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "w-5 h-5" }) => (
@@ -52,6 +52,8 @@ interface ApiError { detail: string; }
 type TabName = "resumen" | "mercado" | "foda" | "modeloNegocio" | "marketing" | "planAccion" | "recursos";
 interface TabConfig { id: TabName; label: string; icon: React.FC; }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 const TABS_CONFIG: TabConfig[] = [
   { id: "resumen", label: "Resumen y Concepto", icon: LightBulbIcon },
   { id: "mercado", label: "Análisis de Mercado", icon: ChartBarIcon },
@@ -62,7 +64,8 @@ const TABS_CONFIG: TabConfig[] = [
   { id: "recursos", label: "Recursos Adicionales", icon: LinkIcon },
 ];
 
-export default function IdeaReportPage() {
+// Componente interno que contiene la lógica y UI principal
+function IdeaReportContent() {
   const params = useParams();
   const router = useRouter();
   const { token, isAuthenticated, isLoading: authIsLoading } = useAuth();
@@ -82,30 +85,23 @@ export default function IdeaReportPage() {
         margin:       [0.5, 0.5, 0.75, 0.5],
         filename:     `${fullReportData.idea_name.replace(/\s+/g, '_')}_ReporteDetallado_GenesisAI.pdf`,
         image:        { type: 'jpeg', quality: 0.95 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: elementToPrint.scrollWidth, windowHeight: elementToPrint.scrollHeight },
+        html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: -window.scrollY, windowWidth: elementToPrint.scrollWidth, windowHeight: elementToPrint.scrollHeight }, // scrollY: -window.scrollY to handle offset
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
         pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
       };
       
-      const clonedElement = elementToPrint.cloneNode(true) as HTMLElement;
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-9999px';
-      clonedElement.style.top = '-9999px';
-      clonedElement.style.height = 'auto';
-      clonedElement.style.width = elementToPrint.offsetWidth + 'px';
-      document.body.appendChild(clonedElement);
-
-      html2pdf().from(clonedElement).set(opt).save()
+      // No es necesario clonar para html2pdf.js, puede trabajar directamente sobre el elemento
+      // y su opción `scrollY: -window.scrollY` ayuda a capturar desde la parte superior
+      // Si aún da problemas, el clonado podría volver a intentarse pero asegurando que los estilos se apliquen bien.
+      html2pdf().from(elementToPrint).set(opt).save()
         .then(() => {
-          document.body.removeChild(clonedElement);
           console.log("PDF generado y descarga iniciada.");
         })
-        .catch((err: any) => { // Tipado err como any
-          document.body.removeChild(clonedElement);
+        .catch((err: any) => { 
           console.error("Error generando PDF:", err);
         });
     } else {
-      console.error("No se puede generar el PDF: el contenido del informe no está disponible.");
+      console.error("No se puede generar el PDF: el contenido del informe no está disponible o la referencia es nula.");
     }
   };
 
@@ -114,12 +110,15 @@ export default function IdeaReportPage() {
       if (!authIsLoading && !isAuthenticated) {
         setErrorPage("Debes iniciar sesión para ver este informe.");
         setIsLoadingPage(false);
+      } else if (!authIsLoading && !ideaId){
+        setErrorPage("ID de idea no encontrado.");
+        setIsLoadingPage(false);
       }
       return;
     }
     setIsLoadingPage(true); setErrorPage(null);
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/ideas/${ideaId}/detailed-report`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaId}/detailed-report`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (!response.ok) {
@@ -129,7 +128,7 @@ export default function IdeaReportPage() {
       }
       const data: FullReportData = await response.json();
       setFullReportData(data);
-    } catch (err: any) { // Tipado err como any
+    } catch (err: any) { 
       console.error("Error fetching detailed report:", err);
       const message = (err instanceof Error) ? err.message : "No se pudo cargar el informe detallado.";
       setErrorPage(message);
@@ -157,12 +156,12 @@ export default function IdeaReportPage() {
   const renderTabContent = () => {
     if (!reportContent) return null;
     switch (activeTab) {
-      case "resumen": return ( <> <h3 className="text-2xl font-semibold text-purple-300 mb-4 border-b border-gray-700 pb-2">Resumen y Concepto</h3> {renderKeyValueSection({ "Concepto Central Expandido": reportContent.concepto_central_expandido }, "Concepto Central de la Idea")} {renderList(reportContent.propuesta_valor_unica, "Propuesta de Valor Única", "text-green-300")} {renderKeyValueSection(reportContent.problema_solucion, "Problema Detectado y Solución Propuesta")} </> );
+      case "resumen": return ( <> <h3 className="text-2xl font-semibold text-purple-300 mb-4 border-b border-gray-700 pb-2">Resumen y Concepto</h3> {renderKeyValueSection({ "Resumen Ejecutivo IA": reportContent.resumen_ejecutivo_ia, "Concepto Central Expandido": reportContent.concepto_central_expandido }, "Concepto Central de la Idea")} {renderList(reportContent.propuesta_valor_unica, "Propuesta de Valor Única", "text-green-300")} {renderKeyValueSection(reportContent.problema_solucion, "Problema Detectado y Solución Propuesta")} </> );
       case "mercado": return ( <> <h3 className="text-2xl font-semibold text-purple-300 mb-4 border-b border-gray-700 pb-2">Análisis de Mercado</h3> {renderKeyValueSection(reportContent.mercado_objetivo, "Mercado Objetivo")} {renderList(reportContent.tendencias_relevantes_sector, "Tendencias Relevantes del Sector")} <div className="mt-6"><h4 className="text-xl font-semibold text-purple-300 mb-3">Competidores Potenciales</h4> {reportContent.competidores_potenciales?.length > 0 ? reportContent.competidores_potenciales.map((comp, i) => ( <div key={i} className="mb-4 p-4 bg-gray-700/50 rounded-lg shadow-md border border-gray-600"> <strong className="text-lg text-gray-100 flex items-center">{comp.nombre} <span className={`ml-2 text-xs px-2 py-0.5 rounded-full font-medium ${comp.tipo === 'Directo' ? 'bg-red-500 text-red-100' : comp.tipo === 'Indirecto' ? 'bg-yellow-500 text-yellow-100' : 'bg-blue-500 text-blue-100'}`}>{comp.tipo}</span></strong> <p className="text-sm text-gray-300 mt-1.5">{comp.descripcion}</p> {comp.url_ejemplo && <a href={comp.url_ejemplo} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 hover:underline block mt-2">Visitar Referencia →</a>} </div> )) : <p className="text-sm text-gray-500 italic">No hay competidores listados.</p>} </div> </> );
-      case "foda": return (<div className="space-y-6"><h3 className="text-2xl font-semibold text-purple-300 mb-6 border-b border-gray-700 pb-2">Análisis DAFO</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8"> {/* Aumentado gap-y */}<div className="bg-gray-700/40 p-6 rounded-lg shadow-lg border border-purple-500/30"><h4 className="text-xl font-semibold text-purple-300 mb-3">Fortalezas</h4>{renderList(reportContent.foda?.fortalezas, undefined, "text-gray-200")} {/* Un gris claro para el texto */}</div><div className="bg-gray-700/40 p-6 rounded-lg shadow-lg border border-purple-500/30"><h4 className="text-xl font-semibold text-purple-300 mb-3">Oportunidades</h4>
+      case "foda": return (<div className="space-y-6"><h3 className="text-2xl font-semibold text-purple-300 mb-6 border-b border-gray-700 pb-2">Análisis DAFO</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8"> <div className="bg-gray-700/40 p-6 rounded-lg shadow-lg border border-purple-500/30"><h4 className="text-xl font-semibold text-purple-300 mb-3">Fortalezas</h4>{renderList(reportContent.foda?.fortalezas, undefined, "text-gray-200")} </div><div className="bg-gray-700/40 p-6 rounded-lg shadow-lg border border-purple-500/30"><h4 className="text-xl font-semibold text-purple-300 mb-3">Oportunidades</h4>
                 {renderList(reportContent.foda?.oportunidades, undefined, "text-gray-200")}
               </div>
-              <div className="bg-gray-700/40 p-6 rounded-lg shadow-lg border border-gray-600/50"> {/* Un borde ligeramente diferente para D y A */}
+              <div className="bg-gray-700/40 p-6 rounded-lg shadow-lg border border-gray-600/50"> 
                 <h4 className="text-xl font-semibold text-purple-400 mb-3">Debilidades</h4>
                 {renderList(reportContent.foda?.debilidades, undefined, "text-gray-300")}
               </div>
@@ -202,13 +201,13 @@ export default function IdeaReportPage() {
             {fullReportData?.idea_name || "Informe Detallado"}
           </h1>
           <p className="text-lg text-gray-400">
-            {fullReportData?.report_content?.resumen_ejecutivo_ia || "Un análisis exhaustivo de tu próxima gran idea de negocio."}
+            {(fullReportData?.report_content?.resumen_ejecutivo_ia.length ?? 0) > 10 ? fullReportData?.report_content?.resumen_ejecutivo_ia : "Un análisis exhaustivo de tu próxima gran idea de negocio."}
           </p>
         </header>
 
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="lg:w-1/4 xl:w-1/5">
-            <nav className="space-y-1.5 sticky top-24">
+            <nav className="space-y-1.5 sticky top-24"> {/* Ajusta top-X según altura de tu navbar */}
               {TABS_CONFIG.map((tab) => (
                 <button
                   key={tab.id}
@@ -235,5 +234,17 @@ export default function IdeaReportPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Componente exportado por defecto.
+// Suspense no es estrictamente necesario aquí ya que no se usa useSearchParams,
+// pero se incluye por consistencia con otros refactors si se desea.
+// Si se prefiere, se puede exportar IdeaReportContent directamente o no usar Suspense.
+export default function IdeaReportPage() {
+  return (
+    // <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Cargando página de informe...</p></div>}>
+      <IdeaReportContent />
+    // </Suspense>
   );
 }

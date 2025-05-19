@@ -1,18 +1,15 @@
 // src/app/page.tsx
 "use client"; // Necesario para hooks y eventos del cliente
 
+import React, { useState, useEffect, useRef } from 'react'; // Hooks de React
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react'; // Hooks de React
 
-export default function HomePage() {
+// Componente separado para la lógica interactiva (parallax)
+function LandingPageContent() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  // No necesitamos heroRef si el efecto se aplica a toda la ventana
-  // const heroRef = useRef<HTMLDivElement>(null); 
-
-  // Factor de movimiento (cuánto se moverá la imagen en relación al mouse)
-  const parallaxFactorX = 0.015; // Ajusta estos valores para más o menos movimiento
+  const parallaxFactorX = 0.015;
   const parallaxFactorY = 0.02;
-  const maxOffset = 15; // Límite máximo de desplazamiento en píxeles
+  const maxOffset = 15;
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -27,33 +24,29 @@ export default function HomePage() {
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, []); // Se ejecuta solo una vez al montar
+  }, []);
 
-  // Calcular los desplazamientos para la imagen de fondo
   const offsetX = Math.max(-maxOffset, Math.min(maxOffset, -mousePosition.x * parallaxFactorX));
   const offsetY = Math.max(-maxOffset, Math.min(maxOffset, -mousePosition.y * parallaxFactorY));
 
   return (
-    // Contenedor principal ahora es solo un wrapper, el efecto se aplica a un div interno
-    <div className="relative min-h-screen"> {/* overflow-hidden en el wrapper principal */}
-      
+    <>
       {/* Div para la imagen de fondo con efecto parallax */}
       <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-100 ease-out" // Usamos duration-100 de Tailwind para una transición rápida
+        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-100 ease-out"
         style={{
-          backgroundImage: "url('/background-hero-2.jpg')", // Ajusta el nombre de tu imagen
-          // Hacemos la imagen ligeramente más grande para que el movimiento no muestre bordes
-          top: '-10%', 
+          backgroundImage: "url('/background-hero-2.jpg')",
+          top: '-10%',
           left: '-5%',
           width: '110%',
           height: '110%',
-          zIndex: 0, // Detrás de todo
-          transform: `translate(${offsetX}px, ${offsetY}px) scale(1)`, // scale(1) para asegurar que no haya problemas con otros transforms
+          zIndex: 0,
+          transform: `translate(${offsetX}px, ${offsetY}px) scale(1)`,
         }}
       ></div>
 
       {/* Overlay oscuro para mejorar la legibilidad del texto */}
-      <div className="absolute inset-0 bg-black opacity-70 z-1"></div> {/* z-1 para estar sobre el fondo, debajo del main */}
+      <div className="absolute inset-0 bg-black opacity-70 z-1"></div>
 
       {/* Contenido de la página, ahora relativo al overlay */}
       <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 text-white">
@@ -64,7 +57,7 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl text-gray-200 mb-10">
             Genera y valida conceptos de negocio únicos, adaptados a ti, con el poder de la inteligencia artificial. Descubre tu próximo gran proyecto con <span className="text-xl md:text-1xl font-bold text-purple-400" >GÉNESIS AI.</span>
           </p>
-          <Link 
+          <Link
             href="/generate-idea"
             className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full text-lg shadow-lg transform transition-transform duration-150 hover:scale-105"
           >
@@ -91,6 +84,15 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+    </>
+  );
+}
+
+// El componente HomePage simplemente renderiza el contenido
+export default function HomePage() {
+  return (
+    <div className="relative min-h-screen">
+      <LandingPageContent />
     </div>
   );
 }

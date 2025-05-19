@@ -1,7 +1,7 @@
 // src/app/generate-idea/page.tsx
 "use client"; 
 
-import { useState, FormEvent, useEffect, useRef, useCallback } from 'react';
+import React, { useState, FormEvent, useEffect, useRef, useCallback, Suspense } from 'react'; // Añadido React y Suspense
 import { useAuth } from '@/context/AuthContext'; 
 import { useRouter, usePathname, useSearchParams as useNextSearchParams } from 'next/navigation'; 
 import { toast } from 'react-toastify';
@@ -31,13 +31,15 @@ interface GeneratedIdea { id?: number; idea_name: string; idea_description: stri
 interface ApiError { detail: string; }
 
 const SESSION_STORAGE_KEY = 'tempGeneratedIdeas';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'; // Usar variable de entorno para la URL del API
 
 const CORE_VALUES_OPTIONS = [
   "Innovación", "Sostenibilidad", "Impacto Social", "Eficiencia", 
   "Calidad Premium", "Accesibilidad", "Comunidad"
 ];
 
-export default function GenerateIdeaPage() {
+// Componente interno que contiene la lógica y UI principal
+function GenerateIdeaInteractiveContent() {
   const [formData, setFormData] = useState<FormData>({
     interests: '',
     skills: '',
@@ -61,7 +63,7 @@ export default function GenerateIdeaPage() {
   const { user, token, isLoading: authIsLoading, isAuthenticated } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname();
-  const pageSearchParams = useNextSearchParams();
+  const pageSearchParams = useNextSearchParams(); // Este hook necesita Suspense
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -92,6 +94,7 @@ export default function GenerateIdeaPage() {
     const interestsArray = formData.interests.split(',').map(item => item.trim()).filter(item => item !== '');
     const skillsArray = formData.skills.split(',').map(item => item.trim()).filter(item => item !== '');
     if (interestsArray.length === 0 || skillsArray.length === 0) { toast.error("Por favor, ingresa al menos un interés y una habilidad."); setIsLoading(false); return; }
+    
     const payload: any = {
       interests: interestsArray,
       skills: skillsArray,
@@ -99,32 +102,17 @@ export default function GenerateIdeaPage() {
       resources_capital: formData.resources_capital,
       risk_aversion: formData.risk_aversion,
     };
-// Añadir campos opcionales solo si tienen valor o no son el valor por defecto "No especificado"
-if (formData.target_audience && formData.target_audience.trim() !== '') {
-  payload.target_audience = formData.target_audience.trim();
-}
-if (formData.problem_to_solve && formData.problem_to_solve.trim() !== '') {
-  payload.problem_to_solve = formData.problem_to_solve.trim();
-}
-if (formData.core_business_values && formData.core_business_values.length > 0) {
-  payload.core_business_values = formData.core_business_values;
-}
-if (formData.innovation_level && formData.innovation_level !== 'No especificado') {
-  payload.innovation_level = formData.innovation_level;
-}
-if (formData.preferred_business_model && formData.preferred_business_model !== 'No especificado') {
-  payload.preferred_business_model = formData.preferred_business_model;
-}
-console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para depurar
 
     if (formData.target_audience && formData.target_audience.trim() !== '') payload.target_audience = formData.target_audience.trim();
     if (formData.problem_to_solve && formData.problem_to_solve.trim() !== '') payload.problem_to_solve = formData.problem_to_solve.trim();
     if (formData.core_business_values && formData.core_business_values.length > 0) payload.core_business_values = formData.core_business_values;
     if (formData.innovation_level && formData.innovation_level !== 'No especificado') payload.innovation_level = formData.innovation_level;
     if (formData.preferred_business_model && formData.preferred_business_model !== 'No especificado') payload.preferred_business_model = formData.preferred_business_model;
-    console.log("Payload a enviar:", payload);
+    
+    console.log("Payload a enviar al backend:", payload);
+
     try {
-      const response = await fetch('http://localhost:8000/api/v1/ideas/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), });
+      const response = await fetch(`${API_BASE_URL}/api/v1/ideas/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), });
       if (!response.ok) { const errorData = await response.json().catch(() => ({ detail: "Error desconocido" })); throw new Error(errorData.detail || `Error: ${response.status}`); }
       const data = await response.json();
       const ideasWithInitialState = (data.generated_ideas || []).map((idea: any) => ({ ...idea, id: undefined, isSaved: false, is_detailed_report_purchased: false, detailed_report_content: null }));
@@ -140,8 +128,8 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
 
   const openModalWithIdea = (idea: GeneratedIdea) => { setSelectedIdea(idea); setIsModalOpen(true); };
   const closeModal = useCallback(() => { setIsModalOpen(false); setSelectedIdea(null); }, []);
+  
   const handleSaveIdea = useCallback(async (ideaToSave: GeneratedIdea | null, triggeredFromUnlock: boolean = false) => { 
-    // TU LÓGICA ORIGINAL COMPLETA AQUÍ (la que me pasaste antes)
     if (!ideaToSave) return;
     if (ideaToSave.isSaved && !triggeredFromUnlock) { 
       if(!triggeredFromUnlock) toast.info(`La idea "${ideaToSave.idea_name}" ya está guardada.`);
@@ -160,7 +148,7 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
     setIsSavingIdeaName(ideaToSave.idea_name); 
     try {
       const payloadForSave = { idea_name: ideaToSave.idea_name, idea_description: ideaToSave.idea_description, personalization_justification: ideaToSave.personalization_justification, suggested_business_model: ideaToSave.suggested_business_model, preliminary_viability_analysis: ideaToSave.preliminary_viability_analysis, suggested_next_steps: ideaToSave.suggested_next_steps };
-      const response = await fetch('http://localhost:8000/api/v1/ideas/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify(payloadForSave) });
+      const response = await fetch(`${API_BASE_URL}/api/v1/ideas/save`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify(payloadForSave) });
       const data = await response.json();
       if (!response.ok) { const apiError = data as ApiError; throw new Error(apiError.detail || `Error al guardar: ${response.status}`); }
       const updatedIdeaFromDB = data as GeneratedIdea; 
@@ -173,10 +161,9 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
       else toast.error(`Error al auto-guardar para desbloqueo: ${err.message || "Error desconocido"}`);
       console.error("Error al guardar idea:", err); 
     } finally { setIsSavingIdeaName(null); }
-  }, [authIsLoading, isAuthenticated, token, router, pathname, generatedIdeas, selectedIdea, closeModal]);
+  }, [authIsLoading, isAuthenticated, token, router, pathname, generatedIdeas, selectedIdea /*, closeModal removed as it's not used here and to simplify deps */]);
 
   const handleUnlockReport = useCallback(async (ideaToUnlock: GeneratedIdea | null) => { 
-    // TU LÓGICA ORIGINAL COMPLETA AQUÍ (la que me pasaste antes)
     if (!ideaToUnlock) return;
     if (ideaToUnlock.is_detailed_report_purchased) { 
       if (ideaToUnlock.id) { console.log(`Navegando a informe detallado para idea ID: ${ideaToUnlock.id}`); router.push(`/idea/${ideaToUnlock.id}/report`); } 
@@ -193,12 +180,26 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
       router.push(`/login?redirect=${pathname}&action=unlockPending`);
       return;
     }
-    if (!ideaToUnlock.id) { toast.info("La idea debe guardarse primero para poder desbloquear el informe."); return; }
+    if (!ideaToUnlock.id) { 
+      // Lógica mejorada: Si la idea no está guardada (no tiene ID), guardarla primero
+      const confirmSaveFirst = window.confirm(`La idea "${ideaToUnlock.idea_name}" debe guardarse primero para desbloquear el informe.\n¿Deseas guardarla ahora?`);
+      if (confirmSaveFirst) {
+        await handleSaveIdea(ideaToUnlock, true); // Guardar la idea, marcando que es para desbloqueo
+        // Volver a intentar desbloquear DESPUÉS de que se actualice el estado de la idea (con ID)
+        // Esto requiere que handleSaveIdea actualice generatedIdeas y que este componente re-renderice
+        // O, pasar el ID devuelto por el guardado directamente, pero es más complejo con el estado.
+        // Por ahora, le pedimos al usuario que reintente el desbloqueo manualmente tras el guardado.
+        toast.info(`Idea "${ideaToUnlock.idea_name}" guardada. Por favor, intenta desbloquear el informe de nuevo.`);
+      } else {
+        toast.info("Guardado cancelado. No se puede desbloquear el informe sin guardar la idea.");
+      }
+      return; 
+    }
     const confirmUnlock = window.confirm(`Desbloquear informe detallado para "${ideaToUnlock.idea_name}"?\n(Esto es una simulación de pago)`);
     if (!confirmUnlock) { toast.info("Desbloqueo cancelado."); return; }
     setIsUnlockingReportIdeaName(ideaToUnlock.idea_name);
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/ideas/${ideaToUnlock.id}/unlock-report`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'}, });
+      const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaToUnlock.id}/unlock-report`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'}, });
       const updatedIdeaDataFromServer = await response.json();
       if (!response.ok) { const apiError = updatedIdeaDataFromServer as ApiError; throw new Error(apiError.detail || `Error ${response.status}`);}
       toast.success(`¡Informe para "${updatedIdeaDataFromServer.idea_name}" desbloqueado!`);
@@ -209,10 +210,9 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
       else { console.error("Error: Informe desbloqueado pero la idea no tiene ID para la navegación."); toast.warn("Informe desbloqueado, pero hubo un problema al ir a la página del reporte."); }
     } catch (err: any) { toast.error(err.message || "Error al desbloquear."); console.error("Error al desbloquear:", err);
     } finally { setIsUnlockingReportIdeaName(null); }
-  }, [authIsLoading, isAuthenticated, token, router, pathname, generatedIdeas, selectedIdea, isModalOpen, openModalWithIdea, closeModal]);
+  }, [authIsLoading, isAuthenticated, token, router, pathname, generatedIdeas, selectedIdea, handleSaveIdea /*, isModalOpen, openModalWithIdea, closeModal removed as they are not directly used or are covered by selectedIdea change */]);
 
   useEffect(() => { 
-    // TU LÓGICA ORIGINAL COMPLETA AQUÍ para handleEsc
     const handleEsc = (event: KeyboardEvent) => { if (event.key === 'Escape' && isModalOpen) closeModal(); }; 
     if (isModalOpen) { 
       document.body.style.overflow = 'hidden';
@@ -225,12 +225,12 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
   }, [isModalOpen, closeModal]);
 
   useEffect(() => { 
-    // TU LÓGICA ORIGINAL COMPLETA AQUÍ para actualizar sessionStorage
     if (generatedIdeas.length > 0) {
       const afterLogin = pageSearchParams.get('afterLogin');
-      if (afterLogin !== 'true') {
+      if (afterLogin !== 'true') { // Solo guardar si no estamos en el flujo post-login
         try {
           sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(generatedIdeas));
+          console.log("SessionStorage actualizado con generatedIdeas.");
         } catch (e) {
           console.error("Error actualizando sessionStorage tras cambio en generatedIdeas:", e);
         }
@@ -239,37 +239,86 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
   }, [generatedIdeas, pageSearchParams]);
 
   useEffect(() => { 
-    // TU LÓGICA ORIGINAL COMPLETA AQUÍ para post-login
     const afterLogin = pageSearchParams.get('afterLogin');
     const action = pageSearchParams.get('action');
+    
     if (afterLogin === 'true' && !authIsLoading && isAuthenticated && token) {
-      let ideasFromSession = generatedIdeas;
-      if (ideasFromSession.length === 0) {
+      let ideasFromSession = generatedIdeas; // Usar las ideas ya en estado si existen
+      
+      if (ideasFromSession.length === 0) { // Si no hay ideas en estado, intentar cargar de sessionStorage
         const tempIdeasString = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (tempIdeasString) { try { ideasFromSession = JSON.parse(tempIdeasString); setGeneratedIdeas(ideasFromSession); } catch (e) { console.error("Error parsing ideasFromSession post-login:", e); ideasFromSession = []; } }
+        if (tempIdeasString) { 
+          try { 
+            ideasFromSession = JSON.parse(tempIdeasString); 
+            setGeneratedIdeas(ideasFromSession); // Actualizar estado si se cargaron
+            console.log("Post-login: Ideas restauradas de sessionStorage para acción pendiente.", ideasFromSession);
+          } catch (e) { 
+            console.error("Error parsing ideasFromSession post-login:", e); 
+            ideasFromSession = []; 
+          } 
+        }
       }
+      
       const pendingSaveIdeaName = sessionStorage.getItem('pendingSaveIdeaName');
       const pendingUnlockIdeaName = sessionStorage.getItem('pendingUnlockIdeaName');
-      if (action === 'savePending' && pendingSaveIdeaName) { const ideaToProcess = ideasFromSession.find(i => i.idea_name === pendingSaveIdeaName); if (ideaToProcess) { console.log("Post-login: Auto-guardando idea", pendingSaveIdeaName); handleSaveIdea(ideaToProcess, false); } } 
-      else if (action === 'unlockPending' && pendingUnlockIdeaName) { const ideaToProcess = ideasFromSession.find(i => i.idea_name === pendingUnlockIdeaName); if (ideaToProcess) { if (ideaToProcess.id) { console.log("Post-login: Auto-desbloqueando informe para", pendingUnlockIdeaName); handleUnlockReport(ideaToProcess); } else { toast.info(`La idea "${pendingUnlockIdeaName}" debe guardarse primero. Intenta guardarla y luego desbloquea el informe.`); } } }
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      
+      let ideaToProcess: GeneratedIdea | undefined;
+
+      if (action === 'savePending' && pendingSaveIdeaName) { 
+        ideaToProcess = ideasFromSession.find(i => i.idea_name === pendingSaveIdeaName);
+        if (ideaToProcess) { 
+          console.log("Post-login: Auto-guardando idea", pendingSaveIdeaName); 
+          handleSaveIdea(ideaToProcess, false); 
+        } else {
+          console.warn("Post-login: No se encontró la idea para guardar:", pendingSaveIdeaName);
+        }
+      } else if (action === 'unlockPending' && pendingUnlockIdeaName) { 
+        ideaToProcess = ideasFromSession.find(i => i.idea_name === pendingUnlockIdeaName);
+        if (ideaToProcess) { 
+          if (ideaToProcess.id) {
+            console.log("Post-login: Auto-desbloqueando informe para", pendingUnlockIdeaName); 
+            handleUnlockReport(ideaToProcess); 
+          } else {
+            toast.info(`La idea "${pendingUnlockIdeaName}" debe guardarse primero. Intenta guardarla y luego desbloquea el informe.`); 
+            console.log("Post-login: Intento de desbloquear idea no guardada", pendingUnlockIdeaName);
+          }
+        } else {
+          console.warn("Post-login: No se encontró la idea para desbloquear:", pendingUnlockIdeaName);
+        }
+      }
+      
+      // Limpiar sessionStorage y parámetros de URL solo si se procesó una acción
+      // O si 'afterLogin' está presente, para evitar bucles.
+      sessionStorage.removeItem(SESSION_STORAGE_KEY); // Limpiar siempre las ideas temporales después del login
       sessionStorage.removeItem('pendingSaveIdeaName');
       sessionStorage.removeItem('pendingUnlockIdeaName');
-      router.replace(pathname, { scroll: false }); 
+      router.replace(pathname, { scroll: false }); // Limpiar query params
+      console.log("Post-login: Flujo completado, limpiando sessionStorage y query params.");
     }
-  }, [pageSearchParams, authIsLoading, isAuthenticated, token, router, pathname, handleSaveIdea, handleUnlockReport, generatedIdeas]);
+  }, [pageSearchParams, authIsLoading, isAuthenticated, token, router, pathname, handleSaveIdea, handleUnlockReport, generatedIdeas, setGeneratedIdeas /* Añadido setGeneratedIdeas por si es necesario en dependencias */]);
 
   useEffect(() => { 
-    // TU LÓGICA ORIGINAL COMPLETA AQUÍ para restaurar al montar
     const afterLogin = pageSearchParams.get('afterLogin');
+    // Solo restaurar si NO estamos en el flujo 'afterLogin' Y no hay ideas ya
     if (afterLogin !== 'true' && generatedIdeas.length === 0) { 
       const tempIdeasString = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (tempIdeasString) { try { const tempIdeasFromStorage: GeneratedIdea[] = JSON.parse(tempIdeasString); console.log("Mount Restore: Ideas restauradas de sessionStorage.", tempIdeasFromStorage); setGeneratedIdeas(tempIdeasFromStorage); } catch (e) { console.error("Error parseando tempGeneratedIdeas de sessionStorage al montar", e); sessionStorage.removeItem(SESSION_STORAGE_KEY); } }
+      if (tempIdeasString) { 
+        try { 
+          const tempIdeasFromStorage: GeneratedIdea[] = JSON.parse(tempIdeasString); 
+          console.log("Mount Restore: Ideas restauradas de sessionStorage.", tempIdeasFromStorage); 
+          setGeneratedIdeas(tempIdeasFromStorage); 
+        } catch (e) { 
+          console.error("Error parseando tempGeneratedIdeas de sessionStorage al montar", e); 
+          sessionStorage.removeItem(SESSION_STORAGE_KEY); // Limpiar si está corrupto
+        } 
+      }
     }
-  }, []); 
+  }, [pageSearchParams, generatedIdeas, setGeneratedIdeas /* Evitar re-ejecución innecesaria; pageSearchParams es la clave aquí */]); 
 
   if (authIsLoading && !user && !token) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Cargando...</p></div>;
+    // Este es un estado de carga global para la autenticación.
+    // El fallback de Suspense manejará la carga del contenido específico de esta página.
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Verificando sesión...</p></div>;
   }
 
   const labelClasses = "block text-base font-medium text-gray-200 mb-1.5";
@@ -279,24 +328,19 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
 
   return (
     <div className="relative min-h-screen bg-gray-900/20 text-white">
-      {/* Fondo de la página con animación */}
       <div
         className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10 animate-pulse-opacity-slow"
         style={{ backgroundImage: "url('/background-generar-ideas.png')" }}
       ></div>
-      {/* Overlay oscuro sobre el fondo */}
       <div className="fixed inset-0 w-full h-full bg-black/70 -z-10"></div>
 
-      {/* Contenido principal de la página (sin cambios respecto a tu última versión) */}
       <div className="relative z-20 font-sans flex flex-col items-center py-10 px-4 min-h-screen">
         <div className="w-full max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-purple-400">GENERACIÓN DE MODELOS DE NEGOCIO CON IA</h2>
           <h5 className="text-1xl md:text-1xl font-bold text-center mb-10 text-purple-800">Proveé todo el contexto que consideres apropiado.</h5>
           
           <form onSubmit={handleSubmit} className="space-y-8 bg-gray-900/70 backdrop-blur-sm p-6 md:p-10 rounded-xl shadow-2xl border border-gray-700/60 mb-16">
-            {/* ... (resto del formulario y la página como me lo pasaste) ... */}
             <div className="grid md:grid-cols-2 md:gap-x-8 gap-y-6">
-              {/* Columna 1 */}
               <div className="space-y-6">
                 <div><label htmlFor="interests" className={labelClasses}>Intereses / Pasiones <span className="text-xs font-medium text-gray-500 mt-0.5">(separados por comas)</span></label><input type="text" name="interests" id="interests" value={formData.interests} onChange={handleChange} className={inputClasses} placeholder="Ej: cocina vegana, IA" required /></div>
                 <div><label htmlFor="skills" className={labelClasses}>Habilidades específicas <span className="text-xs font-medium text-gray-500 mt-0.5">(separados por comas)</span></label><input type="text" name="skills" id="skills" value={formData.skills} onChange={handleChange} className={inputClasses} placeholder="Ej: desarrollo web, diseño" required /></div>
@@ -304,7 +348,6 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
                 <div><label htmlFor="problem_to_solve" className={labelClasses}>Problema Específico a Resolver <span className="text-xs text-gray-500">(Opcional)</span></label><textarea name="problem_to_solve" id="problem_to_solve" value={formData.problem_to_solve} onChange={handleChange} rows={3} className={inputClasses} placeholder="Describe un problema..." /></div>
               </div>
 
-              {/* Columna 2 */}
               <div className="space-y-6">
                 <div><label htmlFor="resources_time" className={labelClasses}>Tiempo Disponible Semanal</label><select name="resources_time" id="resources_time" value={formData.resources_time} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}><option value="No especificado" className="text-gray-500 bg-gray-800">Selecciona...</option><option value="Menos de 10 horas" className="bg-gray-800">Menos de 10 horas</option><option value="10-20 horas" className="bg-gray-800">10-20 horas</option><option value="Más de 20 horas (Full-time)" className="bg-gray-800">Más de 20 horas</option></select></div>
                 <div><label htmlFor="resources_capital" className={labelClasses}>Capital Inicial Aproximado</label><select name="resources_capital" id="resources_capital" value={formData.resources_capital} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}><option value="No especificado" className="text-gray-500 bg-gray-800">Selecciona...</option><option value="Muy bajo (Bootstrap/Casi nulo)" className="bg-gray-800">Muy bajo</option><option value="Bajo (Algunos ahorros)" className="bg-gray-800">Bajo</option><option value="Medio (Inversión moderada)" className="bg-gray-800">Medio</option><option value="Alto (Busco inversión externa / Capital propio significativo)" className="bg-gray-800">Alto</option></select></div>
@@ -381,5 +424,14 @@ console.log("Payload a enviar al backend:", payload); // MUY IMPORTANTE para dep
         </div>
       )}
     </div>
+  );
+}
+
+// Componente exportado por defecto que envuelve el contenido interactivo con Suspense
+export default function GenerateIdeaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Cargando página de generación de ideas...</p></div>}>
+      <GenerateIdeaInteractiveContent />
+    </Suspense>
   );
 }

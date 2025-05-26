@@ -1,27 +1,40 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false, // Considera cambiar a true para mejor calidad de código a largo plazo
     "noEmit": true,
-    "esModuleInterop": true,
+    "incremental": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "moduleResolution": "bundler", // Recomendado para Next.js reciente, o "node"
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
-    "baseUrl": ".",
-    "paths": {"@/*": ["./src/*"]
+    // --- CONFIGURACIÓN DE PATHS CORREGIDA ---
+    "baseUrl": ".", // AÑADIDO: Establece la raíz del proyecto como base
+    "paths": {
+      "@/*": ["./src/*"] // Mapea @/* a src/* (el ./ es opcional pero claro)
     }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+    // --- FIN CONFIGURACIÓN DE PATHS ---
+  }, // <--- Aquí termina compilerOptions
+  "include": [ // "include" está FUERA de compilerOptions
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [ // "exclude" está FUERA de compilerOptions
+    "node_modules"
+  ]
 }

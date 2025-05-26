@@ -1,10 +1,12 @@
 // src/app/signup/page.tsx
 "use client";
 
-import React, { useState, FormEvent, Suspense } from 'react'; // Añadido React y Suspense
+import React, { useState, FormEvent, Suspense, useEffect } from 'react'; // Agregado useEffect
 import Link from 'next/link';
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; 
-import { toast } from 'react-toastify'; // Para notificaciones
+import { toast } from 'react-toastify'; 
+import { useAuth } from '@/context/AuthContext'; // Para obtener supabase
+import { FaGoogle } from 'react-icons/fa'; // Icono de Google
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -12,11 +14,23 @@ function SignupPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  // const [error, setError] = useState<string | null>(null); // Reemplazado por toast
-  // const [successMessage, setSuccessMessage] = useState<string | null>(null); // Reemplazado por toast
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // Estado para Google signup
+  const { supabase, isAuthenticated } = useAuth(); // Obtenemos supabase del contexto
   const router = useRouter();
-  const searchParams = useNextSearchParams();
+  const nextSearchParams = useNextSearchParams();
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectPath = nextSearchParams.get('redirect') || '/my-ideas';
+      router.replace(redirectPath);
+    }
+  }, [isAuthenticated, router, nextSearchParams]);
+
+  if (isAuthenticated) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Redirigiendo...</p></div>;
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -24,14 +38,12 @@ function SignupPageContent() {
       toast.error('Las contraseñas no coinciden.');
       return;
     }
-    if (password.length < 6) { // Ejemplo de validación simple de longitud
+    if (password.length < 6) {
         toast.error('La contraseña debe tener al menos 6 caracteres.');
         return;
     }
 
     setIsLoading(true);
-    // setError(null); 
-    // setSuccessMessage(null);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/auth/signup`, {
@@ -42,11 +54,9 @@ function SignupPageContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Intentar obtener un mensaje más específico del backend
         let errorMessage = 'Error al registrar usuario.';
         if (data && data.detail) {
             if (Array.isArray(data.detail) && data.detail.length > 0 && data.detail[0].msg) {
-                // Error de validación de Pydantic
                 errorMessage = data.detail.map((d: any) => `${d.loc.join('.')} - ${d.msg}`).join('; ');
             } else if (typeof data.detail === 'string') {
                 errorMessage = data.detail;
@@ -60,21 +70,45 @@ function SignupPageContent() {
       setPassword('');
       setConfirmPassword('');
 
-      // Redirigir a login, manteniendo el parámetro 'redirect' si existe,
-      // para que después del login el usuario vaya a donde originalmente quería.
-      const redirectParam = searchParams.get('redirect');
+      const redirectParam = nextSearchParams.get('redirect');
       const loginPath = redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : '/login';
       
       setTimeout(() => {
         router.push(loginPath);
-      }, 3000); // Aumentado el tiempo para que el usuario lea el toast
+      }, 3000);
 
     } catch (err: any) {
-      // setError(err.message || 'Error desconocido al intentar registrar.');
       toast.error(err.message || 'Error desconocido al intentar registrar.');
       console.error("Signup error:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    if (!supabase) {
+      toast.error('Error de configuración: cliente Supabase no disponible.');
+      console.error("Supabase client is not available in AuthContext for Google signup.");
+      return;
+    }
+    setIsGoogleLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback`; // Misma callback URL
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error al intentar registrarse con Google.');
+      console.error("Google signup error:", err);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -88,6 +122,24 @@ function SignupPageContent() {
         </div>
         <div className="bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700/60">
             <h1 className="text-3xl font-bold text-center mb-8 text-purple-300">Crear Nueva Cuenta</h1>
+            
+            {/* Botón de Google Signup */}
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={isGoogleLoading || isLoading}
+              className="w-full mb-6 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <FaGoogle className="mr-3 text-xl" />
+              {isGoogleLoading ? 'Conectando con Google...' : 'Registrarse con Google'}
+            </button>
+
+            <div className="flex items-center my-6">
+              <hr className="flex-grow border-gray-600" />
+              <span className="mx-4 text-gray-400 text-sm">O</span>
+              <hr className="flex-grow border-gray-600" />
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
             <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1.5">Correo Electrónico</label>
@@ -130,10 +182,9 @@ function SignupPageContent() {
                 minLength={6}
                 />
             </div>
-            {/* Mensajes de error/éxito ahora se manejan con toast */}
             <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 className="w-full py-3.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg transform transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 {isLoading ? 'Registrando...' : 'Crear Cuenta'}
@@ -143,7 +194,7 @@ function SignupPageContent() {
         <p className="mt-8 text-center text-sm text-gray-400">
           ¿Ya tienes una cuenta?{' '}
           <Link
-            href={searchParams.get('redirect') ? `/login?redirect=${searchParams.get('redirect')}` : "/login"}
+            href={nextSearchParams.get('redirect') ? `/login?redirect=${nextSearchParams.get('redirect')}` : "/login"}
             className="font-medium text-purple-400 hover:text-purple-300 hover:underline"
           >
             Inicia sesión aquí

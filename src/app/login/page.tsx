@@ -1,66 +1,80 @@
 // src/app/login/page.tsx
 "use client";
 
-import React, { useState, FormEvent, Suspense } from 'react'; // Añadido React y Suspense
+import React, { useState, FormEvent, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext'; 
-import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; // Para redirección
-import { toast } from 'react-toastify'; // Para notificaciones más amigables
+import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation';
+import { toast } from 'react-toastify'; 
+import { FaGoogle } from 'react-icons/fa';
+import { User as SupabaseUser } from '@supabase/supabase-js'; // Importar User de supabase-js
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+interface EmailLoginApiResponse {
+    access_token: string;
+    refresh_token: string;
+    user: SupabaseUser;
+    token_type: string;
+    expires_in?: number;
+}
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // const [error, setError] = useState<string | null>(null); // Reemplazado por toast
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { loginWithEmail, isAuthenticated, supabase } = useAuth(); 
   const router = useRouter();
-  const searchParams = useNextSearchParams(); // Hook para leer query params
+  const nextSearchParams = useNextSearchParams(); 
 
-  // Si ya está autenticado, redirigir (ej. a 'my-ideas' o a la home)
-  // Esto se podría hacer en un useEffect, pero también en el AuthContext
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectPath = nextSearchParams.get('redirect') || '/my-ideas';
+      router.replace(redirectPath);
+    }
+  }, [isAuthenticated, router, nextSearchParams]);
+
   if (isAuthenticated) {
-    const redirectPath = searchParams.get('redirect') || '/my-ideas'; // O '/' para la home
-    router.replace(redirectPath);
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Redirigiendo...</p></div>; // Placeholder mientras redirige
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Redirigiendo...</p></div>;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
-    // setError(null); // Ya no se usa
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password }), // Asegúrate que tu backend espera email/pass en JSON
+                                                  // o ajusta a application/x-www-form-urlencoded si es necesario
       });
-      const data = await response.json();
+      
+      const data: EmailLoginApiResponse = await response.json(); // Castear al tipo esperado
+
+      // Log para depuración
+      console.log("LOGIN PAGE - API Response data:", JSON.stringify(data, null, 2));
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Error al iniciar sesión. Verifica tus credenciales.');
+        const errorDetail = (data as any).detail || 'Error al iniciar sesión. Verifica tus credenciales.';
+        throw new Error(errorDetail);
       }
 
-      if (data.access_token && data.user) {
-        const redirectPath = searchParams.get('redirect');
-        const action = searchParams.get('action'); // Para manejar acciones post-login
+      if (data.access_token && data.refresh_token && data.user) {
+        const redirectPath = nextSearchParams.get('redirect');
+        const action = nextSearchParams.get('action'); 
         
-        // Pasar redirectPath y action al método login del context
-        // El context se encargará de la navegación
-        login(data.access_token, data.user, redirectPath, action);
+        console.log("LOGIN PAGE - Calling loginWithEmail with data object:", JSON.stringify(data, null, 2));
+        // MODIFICADO: Pasar el objeto 'data' completo a loginWithEmail
+        await loginWithEmail(data, redirectPath, action); 
+        
         toast.success('¡Inicio de sesión exitoso!');
-        // La redirección se manejará en el AuthContext o en un useEffect observando isAuthenticated
-        // Por ejemplo, si el AuthContext actualiza el estado y luego redirige
-        // O podrías hacerlo aquí directamente después de que 'login' complete su trabajo (si no navega internamente)
-        // router.push(redirectPath || '/my-ideas'); // Ejemplo de redirección directa
-
       } else {
-        throw new Error('Respuesta de login incompleta del servidor.');
+        console.error("LOGIN PAGE - API Response missing required session fields (access_token, refresh_token, or user):", data);
+        throw new Error('Respuesta de login incompleta del servidor (se esperaba sesión completa de Supabase).');
       }
     } catch (err: any) {
-      // setError(err.message || 'Error desconocido al intentar iniciar sesión.');
       toast.error(err.message || 'Error desconocido al intentar iniciar sesión.');
       console.error("Login error:", err);
     } finally {
@@ -68,16 +82,66 @@ function LoginPageContent() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (!supabase) {
+      toast.error('Error de configuración: cliente Supabase no disponible.');
+      console.error("Supabase client is not available in AuthContext for Google login.");
+      return;
+    }
+    setIsGoogleLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error al intentar iniciar sesión con Google.');
+      console.error("Google login error:", err);
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen bg-gray-900/20 text-white flex flex-col justify-center items-center p-4">
+      <div 
+        className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10 opacity-10 animate-pulse-opacity-slow"
+        style={{ backgroundImage: "url('/background-login.png')" }}
+      ></div>
+      <div className="fixed inset-0 w-full h-full bg-black/70 -z-10"></div>
+      
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-            <Link href="/" className="text-purple-400 hover:text-purple-300 inline-block transition-colors">
+            <Link href="/" className="text-purple-400 hover:text-purple-300 inline-block transition-colors text-sm">
                 ← Volver a la página principal
             </Link>
         </div>
-        <div className="bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700/60">
+        <div className="bg-gray-800/80 backdrop-blur-md p-8 rounded-xl shadow-2xl border border-gray-700/60">
             <h1 className="text-3xl font-bold text-center mb-8 text-purple-300">Iniciar Sesión</h1>
+            
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isGoogleLoading || isLoading}
+              className="w-full mb-6 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <FaGoogle className="mr-3 text-xl" />
+              {isGoogleLoading ? 'Conectando con Google...' : 'Continuar con Google'}
+            </button>
+
+            <div className="flex items-center my-6">
+              <hr className="flex-grow border-gray-600" />
+              <span className="mx-4 text-gray-400 text-sm">O</span>
+              <hr className="flex-grow border-gray-600" />
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
             <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1.5">Correo Electrónico</label>
@@ -105,10 +169,9 @@ function LoginPageContent() {
                 required 
                 />
             </div>
-            {/* Quitado el <p> de error, se usará toast */}
             <button 
                 type="submit" 
-                disabled={isLoading} 
+                disabled={isLoading || isGoogleLoading} 
                 className="w-full py-3.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg transform transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -118,7 +181,7 @@ function LoginPageContent() {
         <p className="mt-8 text-center text-sm text-gray-400">
           ¿No tienes una cuenta?{' '}
           <Link 
-            href={searchParams.get('redirect') ? `/signup?redirect=${searchParams.get('redirect')}` : "/signup"}
+            href={nextSearchParams.get('redirect') ? `/signup?redirect=${nextSearchParams.get('redirect')}` : "/signup"}
             className="font-medium text-purple-400 hover:text-purple-300 hover:underline"
           >
             Regístrate aquí

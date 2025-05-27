@@ -77,11 +77,11 @@ function LandingPageContent() {
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-3 text-purple-400">1.CONCEPTO</h3>
-              <p className="text-gray-300">Proporciona a nuestra IA el contexto necesario para catalizar ideas de negocio con precisión estratégica.</p>
+              <p className="text-gray-300">Proporciona a nuestra IA tu perfil y el contexto necesario para catalizar ideas de negocio con precisión estratégica, adaptadas a tu visión.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-3 text-purple-400">2.ANÁLISIS</h3>
-              <p className="text-gray-300">Explora cada idea con un Informe Inicial: DAFO, viabilidad y modelo inicial.</p>
+              <p className="text-gray-300">Explora cada idea con un Informe Detallado: Análisis inicial de Mercado, DAFO, viabilidad, modelo inicial, estrategias y primeros pasos cíticos. </p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
               <h3 className="text-xl font-semibold mb-3 text-purple-400">3. PROFUNDIZACIÓN</h3>

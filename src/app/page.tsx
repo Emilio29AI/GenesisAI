@@ -4,29 +4,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-// (Los componentes SVG de iconos no cambian, los mantengo como estaban)
-const IconConcepto = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 mx-auto text-gray-500 mb-3 group-hover:text-gray-400 transition-colors">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-  </svg> );
-const IconAnalisis = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 mx-auto text-gray-500 mb-3 group-hover:text-gray-400 transition-colors">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-  </svg> );
-const IconProfundizacion = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 mx-auto text-gray-500 mb-3 group-hover:text-gray-400 transition-colors">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-  </svg> );
-// Simulemos iconos para las etapas futuras para mantener la estructura
-const IconValidar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 mx-auto text-gray-500 mb-3 group-hover:text-gray-400 transition-colors">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-  </svg>
-);
-const IconAcelerar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 mx-auto text-gray-500 mb-3 group-hover:text-gray-400 transition-colors">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-  </svg>
-);
-// --- FIN Iconos SVG ---
-
 
 function LandingPageContent() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -52,12 +29,13 @@ function LandingPageContent() {
   const offsetY = Math.max(-maxOffset, Math.min(maxOffset, mousePosition.y * parallaxFactorY));
 
   const flujoEtapas = [
-    { id: "perfilar", Icon: IconConcepto, titulo: "1. PERFILAR", descripcion: "Define tu visión y parámetros clave para la IA.", actual: true },
-    { id: "idear", Icon: IconAnalisis, titulo: "2. IDEAR", descripcion: "Recibe conceptos de negocio únicos generados por IA.", actual: true },
-    { id: "analizar", Icon: IconProfundizacion, titulo: "3. ANALIZAR", descripcion: "Explora cada idea con un Informe Detallado y DAFO inicial.", actual: true },
-    { id: "profundizar", Icon: IconProfundizacion, titulo: "4. PROFUNDIZAR", descripcion: "Adquiere Informes Exhaustivos con estrategias y planes de acción.", actual: true },
-    { id: "validar", Icon: IconValidar, titulo: "5. VALIDAR", descripcion: "Utiliza nuestro Kit de Validación para probar tus hipótesis.", actual: false },
-    { id: "acelerar", Icon: IconAcelerar, titulo: "6. ACELERAR", descripcion: "Accede a módulos avanzados para impulsar tu proyecto.", actual: false },
+    // Eliminamos la propiedad 'Icon' ya que no la usaremos
+    { id: "perfilar", titulo: "1. PERFILAR", descripcion: "Define tu visión y parámetros clave para la IA.", actual: true },
+    { id: "idear", titulo: "2. IDEAR", descripcion: "Recibe conceptos de negocio únicos generados por IA.", actual: true },
+    { id: "analizar", titulo: "3. ANALIZAR", descripcion: "Explora cada idea con un informe básico y DAFO inicial.", actual: true },
+    { id: "profundizar", titulo: "4. PROFUNDIZAR", descripcion: "Adquiere Informes Detallados con estrategias y planes de acción.", actual: true },
+    { id: "validar", titulo: "5. VALIDAR", descripcion: "Utiliza nuestro Kit de Validación para probar tus hipótesis.", actual: false },
+    { id: "acelerar", titulo: "6. ACELERAR", descripcion: "Accede a módulos avanzados para impulsar tu proyecto.", actual: false },
   ];
 
   return (
@@ -78,7 +56,7 @@ function LandingPageContent() {
           <div className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
             <div className="lg:w-2/3 text-center lg:text-left">
               <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
-                <span className="text-purple-600">GÉNESIS IA.</span>Inteligencia Estratégica para Emprender<span className="text-purple-400"></span>
+                <span className="text-purple-600">GENESIS IA.</span>Inteligencia Estratégica para Emprender<span className="text-purple-400"></span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-200 mb-5">
                 Convierte tu visión en conceptos de negocio viables. Genera ideas personalizadas, recibe análisis detallados y planifica tus próximos pasos con el poder de la IA.

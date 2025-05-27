@@ -25,7 +25,7 @@ interface IdeaFromDB {
 }
 interface ApiError { detail: string; }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const DETAILED_REPORT_PRICE_DISPLAY = "ARS 10.000"; // Usar esta constante para mostrar el precio
 
 function MyIdeasContent() {

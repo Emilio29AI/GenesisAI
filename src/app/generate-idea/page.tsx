@@ -92,7 +92,7 @@ interface UserGenerationLimits {
 
 // --- Constantes ---
 const SESSION_STORAGE_KEY = 'tempGeneratedIdeas_v3';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://genesis-ai-zeta.vercel.app/';
 const LAST_FORM_DATA_KEY = 'lastUsedFormDataForGeneration_v3';
 const PENDING_FORM_DATA_KEY = 'pendingFormDataForAction_v3';
 const CORE_VALUES_OPTIONS = [

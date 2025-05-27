@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '@/context/AuthContext'; // Para obtener supabase
 import { FaGoogle } from 'react-icons/fa'; // Icono de Google
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function SignupPageContent() {
   const [email, setEmail] = useState('');

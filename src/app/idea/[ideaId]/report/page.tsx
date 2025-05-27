@@ -57,7 +57,7 @@ interface TabConfig { id: TabName; label: string; icon: React.FC; }
 type FeedbackRating = 'util' | 'no_util' | null;
 
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const TABS_CONFIG: TabConfig[] = [
   { id: "resumen", label: "Resumen y Concepto", icon: LightBulbIcon },

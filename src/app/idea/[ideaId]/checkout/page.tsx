@@ -37,7 +37,7 @@ if (typeof window !== 'undefined') {
   }
 }
 // --- Fin Lógica de Inicialización Global ---
-
+console.log("MP Public Key (Frontend):", process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY)
 // --- NUEVO: Definición de estados para el polling ---
 type ReportGenerationStatus = "idle" | "payment_processing" | "report_generating" | "report_ready" | "report_timeout" | "report_error";
 

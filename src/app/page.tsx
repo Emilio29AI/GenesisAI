@@ -54,7 +54,7 @@ function LandingPageContent() {
             
             <div className="lg:w-2/3 text-center lg:text-left">
               <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
-              <span className="text-purple-400">Génesis IA:</span> Tu Analista y Estratega para <span className="text-purple-400">Nuevos Negocios.</span> 
+              <span className="text-purple-400" mb-5>GÉNESIS IA:</span> Tu Analista y Estratega para <span className="text-purple-400">Nuevos Negocios.</span> 
               </h1>
               <p className="text-xl md:text-2xl text-gray-200 mb-5">
                Cataliza tu creatividad. Recibe análisis de mercado, DAFO, modelos de negocio y planes de acción iniciales, impulsados por inteligencia artificial.

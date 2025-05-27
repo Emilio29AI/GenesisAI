@@ -252,7 +252,7 @@ function GenerateIdeaInteractiveContent() {
         headers['Authorization'] = `Bearer ${currentAccessToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/ideas/generate`, {
+      const response = await fetch(`${API_BASE_URL}api/v1/ideas/generate`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payloadForGenerate),

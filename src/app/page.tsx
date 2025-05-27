@@ -66,7 +66,7 @@ function LandingPageContent() {
                 href="/generate-idea"
                 className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full text-lg shadow-lg transform transition-transform duration-150 hover:scale-105 whitespace-nowrap"
               >
-                Generar Conceptos Gratis
+                Iniciar Análisis Gratuito
               </Link>
             </div>
           </div>

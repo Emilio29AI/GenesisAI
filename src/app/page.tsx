@@ -76,16 +76,16 @@ function LandingPageContent() {
           <h2 className="text-3xl font-bold text-center mb-10">¿Cómo Funciona Génesis AI?</h2>
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">1. DEFINE TU PERFIL EMPRENDEDOR PARA LA IA</h3>
-              <p className="text-gray-300">Proporciona a nuestra IA los insumos clave —tus pasiones, experticia y metas— para catalizar ideas de negocio con precisión estratégica.</p>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">1: DEFINE TU PERFIL, DESBLOQUEA IDEAS A MEDIDA</h3>
+              <p className="text-gray-300">Proporciona a nuestra IA el contexto necesario para catalizar ideas de negocio con precisión estratégica.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">2. EXPLORA IDEAS ÚNICAS DE ALTO POTENCIAL</h3>
-              <p className="text-gray-300">Accede a un portafolio de conceptos de negocio, generados por IA a partir del análisis de tu perfil y la inteligencia de mercado global.</p>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">2. ANALIZA EL POTENCIAL Y LA ESTRATEGIA INCIAL</h3>
+              <p className="text-gray-300">Accede a un análisis DAFO, evaluación de mercado, modelo de negocio sugerido, pasos y estrategias para cada idea.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">3. RECIBE INFORMES EXHAUSTIVOS Y PLANES DE ACCIÓN</h3>
-              <p className="text-gray-300">Obtendrás una evaluación de viabilidad inicial y un esquema de acción con los hitos clave para la materialización de tu concepto de negocio.</p>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">3. PROFUNDIZA, VALIDA Y PLANIFICA TU LANZAMIENTO</h3>
+              <p className="text-gray-300">Guarda tus ideas favoritas. Adquiere Informes Detallados con planes de acción exhaustivos y desbloquea módulos avanzados para la validación de hipótesis, simulación estratégica y más.</p>
             </div>
           </div>
         </section>

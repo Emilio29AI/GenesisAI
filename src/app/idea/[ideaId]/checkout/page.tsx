@@ -15,7 +15,7 @@ const PRODUCT_UNIT_PRICE_ARS = 10000.00; // Asegúrate que este sea el valor esp
 
 // --- Lógica de Inicialización Global de Mercado Pago ---
 // (Tu lógica de inicialización existente - SIN CAMBIOS)
-const YOUR_MP_PUBLIC_KEY_TEST = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY_TEST;
+const YOUR_MP_PUBLIC_KEY_TEST = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const backendUrl = `${API_BASE_URL}/api/v1/payments/process-checkout-api`;
 

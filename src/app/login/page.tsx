@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import { FaGoogle } from 'react-icons/fa';
 import { User as SupabaseUser } from '@supabase/supabase-js'; // Importar User de supabase-js
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface EmailLoginApiResponse {
     access_token: string;

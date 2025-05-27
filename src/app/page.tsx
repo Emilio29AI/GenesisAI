@@ -57,7 +57,7 @@ function LandingPageContent() {
                 Tu Co-Fundador IA para <span className="text-purple-400">Planes de Negocio Brillantes</span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-200 mb-5">
-                Genera y valida conceptos de negocio únicos, adaptados a ti, con el poder de la inteligencia artificial. Descubre tu próximo gran proyecto con <span className="text-xl md:text-1xl font-bold text-purple-400" >GÉNESIS AI.</span>
+                <span className="text-xl md:text-1xl font-bold text-purple-400" >GÉNESIS AI: </span>Cataliza tu creatividad. Recibe análisis de mercado, DAFO, modelos de negocio y planes de acción iniciales, impulsados por inteligencia artificial.
               </p>
             </div>
 

@@ -76,11 +76,11 @@ function LandingPageContent() {
           <h2 className="text-3xl font-bold text-center mb-10">¿Cómo Funciona Génesis AI?</h2>
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">1: DEFINE TU PERFIL, DESBLOQUEA IDEAS A MEDIDA</h3>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">1. DEFINE TU PERFIL. DESBLOQUEA IDEAS A MEDIDA</h3>
               <p className="text-gray-300">Proporciona a nuestra IA el contexto necesario para catalizar ideas de negocio con precisión estratégica.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">2. ANALIZA EL POTENCIAL Y LA ESTRATEGIA INCIAL</h3>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">2. ANALIZA EL POTENCIAL Y LA ESTRATEGIA INICIAL</h3>
               <p className="text-gray-300">Accede a un análisis DAFO, evaluación de mercado, modelo de negocio sugerido, pasos y estrategias para cada idea.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">

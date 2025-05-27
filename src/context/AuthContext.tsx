@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoadingLimits(true);
       setUserLimits(null);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/users/me/generation-status`, {
+        const response = await fetch(`${API_BASE_URL}api/v1/users/me/generation-status`, {
           headers: { 'Authorization': `Bearer ${currentSessionForFetch.access_token}` },
         });
         if (response.ok) {

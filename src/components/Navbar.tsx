@@ -61,7 +61,7 @@ export default function Navbar() {
     >
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold text-purple-400 hover:text-purple-300 transition-colors">
-          GENESIS<span className="text-2xl font-extrabold text-purple-500 hover:text-purple-400 transition-colors">AI</span>
+          GENESIS<span className="text-2xl font-extrabold text-purple-500 hover:text-purple-400 transition-colors">IA</span>
         </Link>
         <div className="space-x-2 sm:space-x-4 flex items-center">
           <Link href="/generate-idea" className="text-sm sm:text-base hover:text-purple-300 transition-colors">

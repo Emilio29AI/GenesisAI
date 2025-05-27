@@ -54,10 +54,10 @@ function LandingPageContent() {
             
             <div className="lg:w-2/3 text-center lg:text-left">
               <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
-              <span className="text-purple-600" text-italic mb-4>GÉNESIS IA:</span> Tu Analista y Estratega para <span className="text-purple-400">Nuevos Negocios</span> 
+              <span className="text-purple-600" text-italic mb-4>GÉNESIS IA.</span>Inteligencia Estratégica para Emprender<span className="text-purple-400"></span> 
               </h1>
               <p className="text-xl md:text-2xl text-gray-200 mb-5">
-               Cataliza tu creatividad. Recibe análisis de mercado, DAFO, modelos de negocio y planes de acción iniciales, impulsados por inteligencia artificial.
+               Convierte tu visión en conceptos de negocio viables. Genera ideas personalizadas, recibe análisis detallados y planifica tus próximos pasos con el poder de la IA.
               </p>
             </div>
 
@@ -73,19 +73,19 @@ function LandingPageContent() {
         </div>
         
         <section className="w-full max-w-4xl mx-auto px-6 mt-16 md:mt-24 pb-10"> {/* Añadido pb-10 para dar espacio al final */}
-          <h2 className="text-3xl font-bold text-center mb-10">¿Cómo Funciona Génesis AI?</h2>
+          <h2 className="text-3xl font-bold text-center mb-10">Tu Viaje con Génesis AI</h2>
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">1. DEFINE TU PERFIL. DESBLOQUEA IDEAS A MEDIDA</h3>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">1.CONCEPTO</h3>
               <p className="text-gray-300">Proporciona a nuestra IA el contexto necesario para catalizar ideas de negocio con precisión estratégica.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">2. ANALIZA EL POTENCIAL Y LA ESTRATEGIA INICIAL</h3>
-              <p className="text-gray-300">Accede a un análisis DAFO, evaluación de mercado, modelo de negocio sugerido, pasos y estrategias para cada idea.</p>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">2.ANÁLISIS</h3>
+              <p className="text-gray-300">Explora cada idea con un Informe Inicial: DAFO, viabilidad y modelo inicial.</p>
             </div>
             <div className="p-6 bg-gray-800/70 backdrop-blur-sm rounded-lg shadow-md">
-              <h3 className="text-xl font-semibold mb-3 text-purple-400">3. PROFUNDIZA, VALIDA Y PLANIFICA TU LANZAMIENTO</h3>
-              <p className="text-gray-300">Guarda tus ideas favoritas. Adquiere Informes Detallados con planes de acción exhaustivos y desbloquea módulos avanzados para la validación de hipótesis, simulación estratégica y más.</p>
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">3. PROFUNDIZACIÓN</h3>
+              <p className="text-gray-300">Guarda tus ideas, adquiere Informes Detallados con planes de acción exhaustivos y desbloquea módulos avanzados para la validación de hipótesis, simulación estratégica y más.</p>
             </div>
           </div>
         </section>

@@ -87,6 +87,8 @@ function IdeaReportContent() {
   const [feedbackSubmitSuccess, setFeedbackSubmitSuccess] = useState(false);
   const [feedbackSubmitError, setFeedbackSubmitError] = useState<string | null>(null);
 
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
   const reportMainContentRef = useRef<HTMLDivElement>(null);
   const topControlsRef = useRef<HTMLDivElement>(null);
 
@@ -94,27 +96,77 @@ function IdeaReportContent() {
   const EXTRA_SCROLL_PADDING = 20;
 
   const handleDownloadPdf = async () => {
-    if (reportMainContentRef.current && fullReportData) {
-      try {
-        const html2pdf = (await import('html2pdf.js')).default;
-        const elementToPrint = reportMainContentRef.current;
-        const opt = {
-          margin:       [0.5, 0.5, 0.75, 0.5],
-          filename:     `${fullReportData.idea_name.replace(/\s+/g, '_')}_ReporteDetallado_GenesisAI.pdf`,
-          image:        { type: 'jpeg', quality: 0.95 },
-          html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: -window.scrollY, windowWidth: elementToPrint.scrollWidth, windowHeight: elementToPrint.scrollHeight },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-        await html2pdf().from(elementToPrint).set(opt).save();
-        toast.success("PDF descargado exitosamente.");
-      } catch (pdfError) {
-        console.error("Error generando PDF:", pdfError);
-        toast.error("Error al generar el PDF.");
+    if (!fullReportData || !fullReportData.idea_name) {
+      toast.error("Datos del informe no disponibles para la descarga.");
+      setIsDownloadingPdf(false); // Asegurarse de resetear el estado si hay error temprano
+      return;
+    }
+    if (!session?.access_token) {
+      toast.error("No autenticado. No se puede descargar el informe.");
+      setIsDownloadingPdf(false);
+      return;
+    }
+    if (!API_BASE_URL) {
+        toast.error("Error de configuración: URL de API no disponible.");
+        setIsDownloadingPdf(false);
+        return;
+    }
+
+    setIsDownloadingPdf(true);
+    toast.info("Preparando la descarga de tu informe PDF...", { autoClose: 4000 });
+
+    try {
+      // El path debe coincidir con el definido en tu router de pdfreports.py
+      const pdfEndpoint = `${API_BASE_URL}/api/v1/pdfreports/${ideaId}/download`;
+      console.log("Intentando descargar PDF desde:", pdfEndpoint); // Log para depuración
+
+      const response = await fetch(pdfEndpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorDetail = `Error ${response.status} al descargar el PDF.`;
+        try {
+          const errorData = await response.json();
+          errorDetail = errorData.detail || errorDetail;
+        } catch (e) {
+          errorDetail = `${errorDetail} (${response.statusText || 'Error desconocido del servidor'})`;
+        }
+        throw new Error(errorDetail);
       }
-    } else {
-      console.error("No se puede generar el PDF: el contenido del informe no está disponible o la referencia es nula.");
-      toast.warn("Contenido del informe no disponible para PDF.");
+
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `${fullReportData.idea_name.replace(/[\s\W]+/g, '_')}_GenesisAI_Report.pdf`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (filenameMatch && filenameMatch.length > 1) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpieza
+      setTimeout(() => { // Pequeño delay para asegurar que la descarga inicie en todos los navegadores
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success("Descarga del PDF iniciada.");
+      }, 100);
+
+    } catch (error: any) {
+      console.error("Error al descargar el PDF:", error);
+      toast.error(error.message || "Ocurrió un error al intentar descargar el PDF.");
+    } finally {
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -279,7 +331,24 @@ function IdeaReportContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div ref={topControlsRef} className="mb-8 flex justify-between items-center">
             <button onClick={() => router.back()} className="inline-flex items-center px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900"> <ArrowLeftIcon /> Volver </button>
-            {fullReportData && ( <button onClick={handleDownloadPdf} className="inline-flex items-center px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900"> <DownloadIcon /> Descargar PDF </button> )}
+            {fullReportData && ( <button 
+                onClick={handleDownloadPdf} 
+                disabled={isDownloadingPdf}
+                className={`inline-flex items-center px-4 py-2 text-sm font-semibold rounded-md shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed
+                            ${isDownloadingPdf 
+                                ? 'bg-yellow-500 text-yellow-900 focus:ring-yellow-400' 
+                                : 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'}`}
+              >
+                {isDownloadingPdf ? (
+                  <>
+                    <IconWrapper className="w-4 h-4 animate-spin mr-2"> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> </IconWrapper>
+                    Descargando...
+                  </>
+                ) : (
+                  <> <DownloadIcon /> Descargar PDF </>
+                )}
+              </button>
+            )}  
         </div>
 
         <header className="mb-10 p-6 bg-gradient-to-r from-gray-800 via-gray-800/90 to-purple-900/30 shadow-2xl rounded-xl border border-gray-700">

@@ -56,7 +56,7 @@ function LandingPageContent() {
           <div className="w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
             <div className="lg:w-2/3 text-center lg:text-left">
               <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
-                <span className="text-purple-600">GENESIS IA.</span>Inteligencia Estratégica para Emprender<span className="text-purple-400"></span>
+                <span className="text-purple-600">GENESIS IA. </span>Inteligencia Estratégica para Emprender<span className="text-purple-400"></span>
               </h1>
               <p className="text-xl md:text-2xl text-gray-200 mb-5">
                 Convierte tu visión en conceptos de negocio viables. Genera ideas personalizadas, recibe análisis detallados y planifica tus próximos pasos con el poder de la IA.

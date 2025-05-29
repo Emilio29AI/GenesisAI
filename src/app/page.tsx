@@ -61,9 +61,9 @@ function LandingPageContent() {
 
 
   const flujoEtapas = [ /* ... tu array flujoEtapas sin cambios ... */
-    { id: "perfilar", titulo: "1. PERFILAR", descripcion: "Define tu visión y parámetros clave para la IA.", actual: true },
-    { id: "idear", titulo: "2. IDEAR", descripcion: "Recibe conceptos de negocio únicos generados por IA.", actual: true },
-    { id: "analizar", titulo: "3. ANALIZAR", descripcion: "Explora cada idea con un Informe Detallado y DAFO inicial.", actual: true },
+    { id: "perfilar", titulo: "1. PERFILAR", descripcion: "Define tu visión y parámetros clave como punto de partida para la IA.", actual: true },
+    { id: "idear", titulo: "2. IDEAR", descripcion: "Recibe conceptos de negocio personalizados y un resumen de viabilidad inicial de forma gratuita.", actual: true },
+    { id: "analizar", titulo: "3. ANALIZAR", descripcion: "Explora cada idea con un Informe Detallado, DAFO y Análisis de Mercado.", actual: true },
     { id: "profundizar", titulo: "4. VALIDAR", descripcion: "Verifica la solidez de tu proyecto con módulos de Validación y Diagnóstico", actual: true },
     { id: "validar", titulo: "5. PROFUNDIZAR ", descripcion: "Adquiere Informes Exhaustivos con estrategias y planes de acción.", actual: false },
     { id: "acelerar", titulo: "6. ACELERAR", descripcion: "Accede a módulos avanzados para impulsar tu proyecto.", actual: false },

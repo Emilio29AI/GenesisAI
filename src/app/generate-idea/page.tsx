@@ -20,12 +20,14 @@ const CheckIcon = () => ( <IconWrapper> <svg xmlns="http://www.w3.org/2000/svg" 
 // --- FIN Iconos SVG ---
 
 import {
+  HeartIcon as HeartIconOutline,
   MagnifyingGlassIcon, // Para explorar
   KeyIcon,             // Para desbloquear informe
   BookmarkIcon,        // Para guardar
   UserPlusIcon,        // Para registrarse
   ArrowRightCircleIcon // Para el botón final
 } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
 // --- Interfaces ---
 interface FormData {
@@ -711,7 +713,7 @@ function GenerateIdeaInteractiveContent() {
 
           {pageError && <p className="my-4 text-center text-red-400 bg-red-900/50 p-3 rounded-md">{pageError}</p>}
           
-          <div ref={resultsContainerRef} className="mt-10 scroll-mt-24">
+          <div ref={resultsContainerRef} className="mt-10 scroll-mt-60">
             {generatedIdeas.length > 0 && !isLoading && (
               <>
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-purple-300">¡Tus Conceptos de Negocio Personalizados!</h2>
@@ -719,16 +721,44 @@ function GenerateIdeaInteractiveContent() {
                   {generatedIdeas.map((idea, index) => {
                     const unlockButtonClasses = idea.is_detailed_report_purchased ? 'text-green-300 border-green-500/70 bg-green-600/20 hover:bg-green-600/30 cursor-pointer' : 'text-blue-300 hover:text-blue-200 border-blue-500/70 hover:bg-blue-500/30';
                     const saveButtonClasses = idea.isSaved ? 'bg-green-700/80 text-white border-green-700 cursor-not-allowed' : 'text-green-300 hover:text-green-200 border-green-500/70 hover:bg-green-500/30';
-                    return (
-                      <div key={idea.id || idea.idea_name + index} className="flex flex-col bg-gray-800/80 backdrop-blur-md p-6 rounded-xl shadow-2xl border border-gray-700/60 hover:border-purple-500/70 transition-all duration-300">
-                        <h3 className="text-xl font-semibold text-purple-300 mb-3">{idea.idea_name}</h3>
+                   return (
+                      <div key={idea.id || idea.idea_name + index} className="flex flex-col bg-gray-800/80 backdrop-blur-md p-6 rounded-xl shadow-2xl border border-gray-700/60 hover:border-purple-500/70 hover:scale-105 hover:shadow-purple-500/50 transition-all duration-300 relative">
+                        {/* --- NUEVO BOTÓN DE CORAZÓN PARA GUARDAR --- */}
+                        <button
+                          onClick={() => {
+                            if (idea.isSaved) {
+                              toast.info("Esta idea ya está guardada.");
+                              // Opcionalmente, aquí podrías implementar la lógica para "desguardar" si es necesario en el futuro.
+                              // Por ahora, si está guardada, el clic no hace una acción de cambio.
+                            } else {
+                              handleSaveIdea(idea, false);
+                            }
+                          }}
+                          disabled={isSavingIdeaName === idea.idea_name}
+                          className="absolute top-3 right-3 p-1.5 text-pink-500 hover:text-pink-400 disabled:opacity-50 z-10"
+                          aria-label={idea.isSaved ? "Idea guardada" : "Guardar idea"}
+                        >
+                          {isSavingIdeaName === idea.idea_name ? (
+                            <span className="animate-spin inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full"></span>
+                          ) : idea.isSaved ? (
+                            <HeartIconSolid className="w-6 h-6" />
+                          ) : (
+                            <HeartIconOutline className="w-6 h-6" />
+                          )}
+                        </button>
+                        
+                        <h3 className="text-xl font-semibold text-purple-300 mb-3 pr-10">{idea.idea_name}</h3>
                         <p className="text-gray-300 text-sm mb-5 flex-grow line-clamp-[10]">{idea.idea_description}</p>
                         <div className="mt-auto space-y-2.5">
-                          <button onClick={() => openModalWithIdea(idea)} className="w-full text-sm text-purple-300 hover:text-purple-200 py-2.5 px-3 rounded-lg border border-purple-500/70 hover:bg-purple-500/30 transition-colors flex items-center justify-center"> Ver Resumen Básico </button>
+                          <button onClick={() => openModalWithIdea(idea)} className="w-full text-sm text-purple-300 hover:text-purple-200 py-2.5 px-3 rounded-lg border border-purple-500/70 hover:bg-purple-500/30 transition-colors flex items-center justify-center"> Ver Resumen de Viabilidad Inicial</button>
                           <button 
                             onClick={() => handleUnlockReport(idea)} 
                             disabled={isProcessingUnlock === idea.idea_name && !idea.is_detailed_report_purchased} 
-                            className={`w-full text-sm py-2.5 px-3 rounded-lg border transition-colors disabled:opacity-60 flex items-center justify-center ${unlockButtonClasses}`}
+                            className={`w-full text-sm py-2.5 px-3 rounded-lg border transition-colors disabled:opacity-60 flex items-center justify-center ${
+                              idea.is_detailed_report_purchased 
+                                ? 'text-green-300 border-green-500/70 bg-green-600/20 hover:bg-green-600/30 cursor-pointer' 
+                                : 'text-blue-300 hover:text-blue-200 border-blue-500/70 hover:bg-blue-500/30'
+                            }`}
                           >
                             {isProcessingUnlock === idea.idea_name && !idea.is_detailed_report_purchased
                                 ? (<> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Procesando...</>)
@@ -738,25 +768,19 @@ function GenerateIdeaInteractiveContent() {
                                   )
                             }
                           </button>
-                          <button onClick={() => handleSaveIdea(idea, false)} disabled={isSavingIdeaName === idea.idea_name || idea.isSaved} className={`w-full text-sm py-2.5 px-3 rounded-lg border transition-colors disabled:opacity-60 flex items-center justify-center ${saveButtonClasses}`}> 
-                            {isSavingIdeaName === idea.idea_name ? (<> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Guardando...</>) 
-                              : (idea.isSaved ? <><CheckIcon /> ¡Guardada!</> 
-                                : <><SaveIcon /> Guardar Idea</> 
-                              )
-                            } 
-                          </button>
+                          {/* El botón "Guardar Idea" original se elimina de aquí */}
                         </div>
                       </div>
                     );
                   })}
                 </div>
                 {/* ----- SECCIÓN DE FRASES DE TRANSICIÓN MEJORADA ----- */}
-              <div className="mt-16 pt-10 border-t border-gray-700/50 text-center space-y-10"> {/* Aumentado el espacio y margen */}
+              <div className="mt-16 pt-5 border-t border-gray-700/50 text-center space-y-5"> {/* Aumentado el espacio y margen */}
                 
                 {/* Bloque 1: Explorar */}
                 <div className="group transform transition-all duration-500 ease-out hover:scale-105"> {/* Para animación/hover */}
                   <MagnifyingGlassIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
-                  <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                  <p className="text-sm text-gray-200 mb-1 group-hover:text-white">
                     ¿Alguna idea resuena contigo? Profundiza con un 
                     <span className="font-semibold text-purple-300"> Resumen Básico Gratuito</span>
                     <br className="sm:hidden"/> y descubre su DAFO y viabilidad inicial.
@@ -767,18 +791,19 @@ function GenerateIdeaInteractiveContent() {
                 {/* Bloque 2: Informe Detallado */}
                 <div className="group transform transition-all duration-500 ease-out hover:scale-105">
                   <KeyIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
-                  <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                  <p className="text-sm text-gray-200 mb-1 group-hover:text-white">
                     ¿Listo para un plan completo? Desbloquea el 
                     <span className="font-semibold text-purple-300"> Informe Detallado</span>
                     <br className="sm:hidden"/> y obtén estrategias de mercado, modelo de negocio y un plan de acción paso a paso.
                   </p>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-400">(Acción disponible en cada tarjeta de idea)</p>
                 </div>
 
                 {/* Bloque 3: Guardar / Registrarse */}
                 {isAuthenticated ? (
                     <div className="group transform transition-all duration-500 ease-out hover:scale-105">
                         <BookmarkIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
-                        <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                        <p className="text-sm text-gray-200 mb-1 group-hover:text-white">
                             No pierdas tu progreso. 
                             <span className="font-semibold text-purple-300"> Guarda tus ideas favoritas</span>
                             <br className="sm:hidden"/> para continuar tu análisis y desarrollo.
@@ -788,7 +813,7 @@ function GenerateIdeaInteractiveContent() {
                 ) : (
                     <div className="group transform transition-all duration-500 ease-out hover:scale-105">
                         <UserPlusIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
-                        <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                        <p className="text-sm text-gray-200 mb-1 group-hover:text-white">
                             Para guardar tus ideas y acceder a más funcionalidades,
                             <Link href="/login" className="font-semibold text-purple-300 hover:underline"> inicia sesión</Link> o 
                             <Link href="/signup" className="font-semibold text-purple-300 hover:underline"> regístrate</Link>.

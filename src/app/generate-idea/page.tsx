@@ -19,6 +19,14 @@ const SaveIcon = () => ( <IconWrapper> <svg xmlns="http://www.w3.org/2000/svg" f
 const CheckIcon = () => ( <IconWrapper> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /> </svg> </IconWrapper> );
 // --- FIN Iconos SVG ---
 
+import {
+  MagnifyingGlassIcon, // Para explorar
+  KeyIcon,             // Para desbloquear informe
+  BookmarkIcon,        // Para guardar
+  UserPlusIcon,        // Para registrarse
+  ArrowRightCircleIcon // Para el botón final
+} from '@heroicons/react/24/outline';
+
 // --- Interfaces ---
 interface FormData {
   idea_seed?: string;
@@ -742,52 +750,64 @@ function GenerateIdeaInteractiveContent() {
                     );
                   })}
                 </div>
-                {/* ----- INICIO SECCIÓN DE FRASES DE TRANSICIÓN ----- */}
-                <div className="mt-12 pt-8 border-t border-gray-700/50 text-center space-y-6">
-                  <div>
-                    <p className="text-sm text-gray-300 mb-2">
-                      ¿Alguna idea resuena contigo? Profundiza con un 
-                      <span className="font-semibold text-purple-300"> Resumen Básico Gratuito</span>
-                      <br className="sm:hidden"/> y descubre su análisis DAFO y viabilidad inicial.
-                    </p>
-                    <p className="text-xs text-gray-500">(Puedes hacerlo desde cada tarjeta de idea)</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-300 mb-2">
-                      ¿Listo para un plan completo? Desbloquea el 
-                      <span className="font-semibold text-purple-300"> Informe Detallado</span>
-                      <br className="sm:hidden"/> y obtén estrategias de mercado, modelo de negocio y un plan de acción paso a paso.
-                    </p>
-                  </div>
+                {/* ----- SECCIÓN DE FRASES DE TRANSICIÓN MEJORADA ----- */}
+              <div className="mt-16 pt-10 border-t border-gray-700/50 text-center space-y-10"> {/* Aumentado el espacio y margen */}
+                
+                {/* Bloque 1: Explorar */}
+                <div className="group transform transition-all duration-500 ease-out hover:scale-105"> {/* Para animación/hover */}
+                  <MagnifyingGlassIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
+                  <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                    ¿Alguna idea resuena contigo? Profundiza con un 
+                    <span className="font-semibold text-purple-300"> Resumen Básico Gratuito</span>
+                    <br className="sm:hidden"/> y descubre su DAFO y viabilidad inicial.
+                  </p>
+                  <p className="text-xs text-gray-500 group-hover:text-gray-400">(Acción disponible en cada tarjeta de idea)</p>
+                </div>
+                
+                {/* Bloque 2: Informe Detallado */}
+                <div className="group transform transition-all duration-500 ease-out hover:scale-105">
+                  <KeyIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
+                  <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                    ¿Listo para un plan completo? Desbloquea el 
+                    <span className="font-semibold text-purple-300"> Informe Detallado</span>
+                    <br className="sm:hidden"/> y obtén estrategias de mercado, modelo de negocio y un plan de acción paso a paso.
+                  </p>
+                </div>
 
-                  {isAuthenticated ? (
-                      <div>
-                          <p className="text-sm text-gray-300 mb-2">
-                              No pierdas tu progreso. 
-                              <span className="font-semibold text-purple-300"> Guarda tus ideas favoritas</span>
-                              <br className="sm:hidden"/> para continuar tu análisis y desarrollo más tarde.
-                          </p>
-                          <p className="text-xs text-gray-500">(Usa el botón "Guardar Idea" en cada concepto)</p>
-                      </div>
-                  ) : (
-                      <div>
-                          <p className="text-sm text-gray-300 mb-2">
-                              Para guardar tus ideas y acceder a más funcionalidades,
-                              <Link href="/login" className="font-semibold text-purple-300 hover:underline"> inicia sesión</Link> o 
-                              <Link href="/signup" className="font-semibold text-purple-300 hover:underline"> regístrate</Link>.
-                          </p>
-                      </div>
-                  )}
-                  <div className="mt-8">
-                      <Link href={isAuthenticated ? "/my-ideas" : "/generate-idea"} 
-                            className="px-8 py-3 bg-transparent hover:bg-purple-700/20 border-2 border-purple-600 text-purple-300 font-semibold rounded-lg text-base transition-colors duration-300"
-                      >
-                          {isAuthenticated ? "Ir a Mis Ideas Guardadas" : "Generar Más Ideas"}
-                      </Link>
-                  </div>
-                </div> {/* Cierre del div con className="mt-12 pt-8 ..." */}
-                {/* ----- FIN SECCIÓN DE FRASES DE TRANSICIÓN ----- */}
+                {/* Bloque 3: Guardar / Registrarse */}
+                {isAuthenticated ? (
+                    <div className="group transform transition-all duration-500 ease-out hover:scale-105">
+                        <BookmarkIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
+                        <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                            No pierdas tu progreso. 
+                            <span className="font-semibold text-purple-300"> Guarda tus ideas favoritas</span>
+                            <br className="sm:hidden"/> para continuar tu análisis y desarrollo.
+                        </p>
+                        <p className="text-xs text-gray-500 group-hover:text-gray-400">(Usa el botón "Guardar Idea" en cada concepto)</p>
+                    </div>
+                ) : (
+                    <div className="group transform transition-all duration-500 ease-out hover:scale-105">
+                        <UserPlusIcon className="w-10 h-10 mx-auto text-purple-400 mb-3 group-hover:text-purple-300" />
+                        <p className="text-lg text-gray-200 mb-1 group-hover:text-white">
+                            Para guardar tus ideas y acceder a más funcionalidades,
+                            <Link href="/login" className="font-semibold text-purple-300 hover:underline"> inicia sesión</Link> o 
+                            <Link href="/signup" className="font-semibold text-purple-300 hover:underline"> regístrate</Link>.
+                        </p>
+                    </div>
+                )}
+
+                {/* Botón de Acción Final */}
+                 <div className="mt-10"> {/* Aumentado el margen superior */}
+                    <Link 
+                        href={isAuthenticated ? "/my-ideas" : "/generate-idea"} 
+                        className="inline-flex items-center px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-base shadow-lg transform transition-transform duration-150 hover:scale-105 active:scale-95"
+                    >
+                        <ArrowRightCircleIcon className="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform" />
+                        {isAuthenticated ? "Ir a Mis Ideas Guardadas" : "Generar Más Ideas"}
+                    </Link>
+                </div>
+              </div>
+              {/* ----- FIN SECCIÓN DE FRASES DE TRANSICIÓN ----- */}
               </>
             )}
           </div>

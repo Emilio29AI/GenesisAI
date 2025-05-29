@@ -772,7 +772,7 @@ function GenerateIdeaInteractiveContent() {
                       </div>
                   ) : (
                       <div>
-                          <p className="text-lg text-gray-300 mb-2">
+                          <p className="text-sm text-gray-300 mb-2">
                               Para guardar tus ideas y acceder a más funcionalidades,
                               <Link href="/login" className="font-semibold text-purple-300 hover:underline"> inicia sesión</Link> o 
                               <Link href="/signup" className="font-semibold text-purple-300 hover:underline"> regístrate</Link>.

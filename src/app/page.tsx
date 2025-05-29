@@ -32,13 +32,30 @@ const IconNumeroEtapa = ({ numero, esActual }: { numero: number, esActual: boole
 
 
 function LandingPageContent() {
-  // ... (tu lógica de mousePosition y parallax sin cambios) ...
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const parallaxFactorX = 0.015;
   const parallaxFactorY = 0.01;
   const maxOffset = 10;
 
-  useEffect(() => { /* ... */ }, []);
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      // Calcula la posición del mouse relativa al centro de la ventana
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const deltaX = event.clientX - centerX;
+      const deltaY = event.clientY - centerY;
+      setMousePosition({ x: deltaX, y: deltaY });
+    };
+
+    // Añade el listener cuando el componente se monta
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // Limpia el listener cuando el componente se desmonta
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+  
   const offsetX = Math.max(-maxOffset, Math.min(maxOffset, mousePosition.x * parallaxFactorX));
   const offsetY = Math.max(-maxOffset, Math.min(maxOffset, mousePosition.y * parallaxFactorY));
 

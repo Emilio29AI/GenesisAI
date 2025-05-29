@@ -72,11 +72,11 @@ function MyIdeasContent() {
   }, [router]);
   */
 
-  const openDeleteModal = (idea: IdeaFromDB) => { setIdeaToDelete(idea); setIsDeleteModalOpen(true); };
+const openDeleteModal = (idea: IdeaFromDB) => { setIdeaToDelete(idea); setIsDeleteModalOpen(true); };
   const confirmDeleteIdea = useCallback(async () => {
     if (!ideaToDelete || !ideaToDelete.id || !session?.access_token) { toast.error("No se puede borrar."); closeDeleteModal(); return; } setIsDeleting(true); try { const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaToDelete.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${session.access_token}`, }, }); if (response.status === 204) { toast.success(`Idea eliminada.`); setMyIdeas(prevIdeas => prevIdeas.filter(idea => idea.id !== ideaToDelete.id)); } else { const errorData = await response.json().catch(() => null); throw new Error(errorData?.detail || `Error al eliminar.`); } } catch (err: any) { toast.error(err.message); } finally { setIsDeleting(false); closeDeleteModal(); }
   }, [ideaToDelete, session, closeDeleteModal, API_BASE_URL]);
-
+    
   if (authIsLoading) { return <div className="min-h-screen flex items-center justify-center"><p>Verificando...</p></div>; }
   if (!isAuthenticated) { return <div className="min-h-screen flex flex-col items-center justify-center"><h1 className="text-2xl">Acceso Denegado</h1><Link href={`/login?redirect=${pathname}`}>Iniciar Sesión</Link></div>; }
   if (pageLoading && myIdeas.length === 0 && !error) { return <div className="min-h-screen flex items-center justify-center"><p>Cargando ideas...</p></div>; }

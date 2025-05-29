@@ -92,7 +92,7 @@ interface UserGenerationLimits {
 
 // --- Constantes ---
 const SESSION_STORAGE_KEY = 'tempGeneratedIdeas_v3';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://genesis-ai-zeta.vercel.app/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const LAST_FORM_DATA_KEY = 'lastUsedFormDataForGeneration_v3';
 const PENDING_FORM_DATA_KEY = 'pendingFormDataForAction_v3';
 const CORE_VALUES_OPTIONS = [
@@ -667,88 +667,139 @@ function GenerateIdeaInteractiveContent() {
     );
 
   return (
-     <div className="relative min-h-screen bg-gray-900/20 text-white">
-      <div className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10 animate-pulse-opacity-slow" style={{ backgroundImage: "url('/background-generar-ideas.png')" }}></div>
-      <div className="fixed inset-0 w-full h-full bg-black/70 -z-10"></div>
-      <div className="relative z-20 font-sans flex flex-col items-center py-10 px-4 min-h-screen">
-        <div className="w-full max-w-3xl">
-          <header className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-purple-800 mb-4">
-              Genera. Valida. Emprende.
-            </h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
-              Describe tu punto de partida. Nuestra IA te proporcionará conceptos de negocio y análisis iniciales.
-            </p>
-          </header>
+  <div className="relative min-h-screen bg-gray-900/20 text-white">
+    <div className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10 animate-pulse-opacity-slow" style={{ backgroundImage: "url('/background-generar-ideas.png')" }}></div>
+    <div className="fixed inset-0 w-full h-full bg-black/70 -z-10"></div>
+    <div className="relative z-20 font-sans flex flex-col items-center py-10 px-4 min-h-screen">
+      <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl">
+        <header className="text-center mb-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-purple-800 mb-4">
+            Genera. Valida. Emprende.
+          </h1>
+          <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
+            Describe tu punto de partida. Nuestra IA te proporcionará conceptos de negocio y análisis iniciales.
+          </p>
+        </header>
 
-          <form onSubmit={handleSubmit} className={`space-y-12 bg-gray-800/70 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-gray-700/50 mb-16`}>
-            {/* FORMULARIO SIN CAMBIOS EN SU JSX INTERNO */}
-             <section aria-labelledby="vision-heading" className={sectionSpacingClasses}> <h2 id="vision-heading" className={sectionTitleClasses}> Paso 1: Tu Visión <span className="text-sm font-normal text-gray-400">(Completa al menos uno de estos dos campos)</span> </h2> <div className={fieldGroupClasses}> <div> <label htmlFor="idea_seed" className={labelClasses}> 1. ¿Tienes una idea o concepto inicial en mente? <span className="block text-xs font-normal text-gray-400/80 mt-1">Si ya tienes un chispazo o un área de enfoque, compártela.</span> </label> <textarea name="idea_seed" id="idea_seed" value={formData.idea_seed} onChange={handleChange} rows={3} className={inputClasses} placeholder='Ej: "Plataforma de IA para optimizar logística de última milla" o "Moda sostenible con materiales reciclados"' /> </div> <div> <label htmlFor="problem_to_solve" className={labelClasses}> 2. ¿Qué problema o necesidad clave buscas abordar? <span className="block text-xs font-normal text-gray-400/80 mt-1">Describe el desafío o la oportunidad que quieres abordar.</span> </label> <textarea name="problem_to_solve" id="problem_to_solve" value={formData.problem_to_solve} onChange={handleChange} rows={3} className={inputClasses} placeholder='Ej: "La ineficiencia en la gestión de inventarios para PyMEs" o "La falta de opciones de ocio saludable para jóvenes en áreas urbanas"' /> </div> </div> </section>
-             <section aria-labelledby="profile-heading" className={sectionSpacingClasses}> <h2 id="profile-heading" className={sectionTitleClasses}> Paso 2: Sobre Ti <span className="text-sm font-normal text-gray-400">(Opcional)</span> </h2> <div className="grid md:grid-cols-2 md:gap-x-8 gap-y-6"> <div className={fieldGroupClasses}> <div> <label htmlFor="interests" className={labelClasses}> 2.1. Nichos o Industrias de Interés Principal <span className="block text-xs font-normal text-gray-400/80 mt-1">Separa por comas. Ej: Fintech, IA en salud, E-commerce de autor</span> </label> <input type="text" name="interests" id="interests" value={formData.interests} onChange={handleChange} className={inputClasses} placeholder="Ej: Energías renovables, EdTech, Bienestar digital" /> </div> <div> <label htmlFor="resources_time" className={labelClasses}>2.3. Dedicación Estimada al Proyecto</label> <select name="resources_time" id="resources_time" value={formData.resources_time} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Elige tu disponibilidad...</option> <option value="Menos de 10 horas semanales" className="bg-gray-800">Menos de 10 horas/semana (Complementario)</option> <option value="10-20 horas semanales" className="bg-gray-800">10-20 horas/semana (Medio tiempo)</option> <option value="Más de 20 horas semanales (Full-time)" className="bg-gray-800">Más de 20 horas/semana (Dedicación completa)</option> </select> </div> </div> <div className={fieldGroupClasses}> <div> <label htmlFor="skills" className={labelClasses}> 2.2. Tus Habilidades o Experiencia Clave <span className="block text-xs font-normal text-gray-400/80 mt-1">Separa por comas. Ej: Desarrollo Full-Stack, Marketing Digital</span> </label> <input type="text" name="skills" id="skills" value={formData.skills} onChange={handleChange} className={inputClasses} placeholder="Ej: Gestión de Proyectos Ágiles, Ventas B2B, Diseño UX/UI" /> </div> <div> <label htmlFor="resources_capital" className={labelClasses}>2.4. Capacidad de Inversión Inicial</label> <select name="resources_capital" id="resources_capital" value={formData.resources_capital} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Define tu capacidad...</option> <option value="Muy bajo (Bootstrap/Casi nulo)" className="bg-gray-800">Bootstrap / Fondos mínimos</option> <option value="Bajo (Algunos ahorros personales)" className="bg-gray-800">Ahorros personales (Bajo)</option> <option value="Medio (Inversión moderada o 'Amigos y Familia')" className="bg-gray-800">Inversión moderada (Medio)</option> <option value="Alto (Busco 'Ángeles Inversionistas' / Capital Semilla)" className="bg-gray-800">Capital Semilla / Inversores (Alto)</option> </select> </div> </div> </div> </section>
-             <section aria-labelledby="preferences-heading" className={sectionSpacingClasses}> <h2 id="preferences-heading" className={sectionTitleClasses}> Paso 3: Ajustes Finos <span className="text-sm font-normal text-gray-400">(Opcional)</span> </h2> <div className="grid md:grid-cols-2 md:gap-x-8 gap-y-6"> <div className={fieldGroupClasses}> <div> <label htmlFor="target_audience" className={labelClasses}> 3.1. Describe tu Cliente o Usuario Ideal <span className="block text-xs font-normal text-gray-400/80 mt-1">¿A quién te diriges? Mientras más detalles, más precisa la IA.</span> </label> <textarea name="target_audience" id="target_audience" value={formData.target_audience} onChange={handleChange} rows={2} className={inputClasses} placeholder='Ej: "Startups B2B en sector SaaS con 10-50 empleados" o "Millennials eco-conscientes (25-35 años) en grandes ciudades"' /> </div> <div> <label htmlFor="innovation_level" className={labelClasses}>3.3. Nivel de Innovación que Buscas</label> <select name="innovation_level" id="innovation_level" value={formData.innovation_level} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Selecciona el alcance...</option> <option value="Incremental" className="bg-gray-800">Incremental (Mejorar algo existente)</option> <option value="Adaptativa" className="bg-gray-800">Adaptativa (Aplicar un modelo exitoso a un nuevo nicho)</option> <option value="Disruptiva" className="bg-gray-800">Disruptiva (Crear o transformar un mercado)</option> </select> </div> </div> <div className={fieldGroupClasses}> <div> <label htmlFor="risk_aversion" className={labelClasses}>3.2. Tu Tolerancia al Riesgo Empresarial</label> <select name="risk_aversion" id="risk_aversion" value={formData.risk_aversion} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificada" className="text-gray-500 bg-gray-800">Define tu perfil de riesgo...</option> <option value="Muy alta (Prefiero algo muy seguro y probado)" className="bg-gray-800">Muy alta (Busco máxima seguridad)</option> <option value="Alta (Cauteloso, prefiero minimizar riesgos)" className="bg-gray-800">Alta (Cauteloso)</option> <option value="Media (Abierto a riesgos calculados)" className="bg-gray-800">Media (Equilibrado)</option> <option value="Baja (Dispuesto a tomar riesgos significativos por alta recompensa)" className="bg-gray-800">Baja (Audaz)</option> </select> </div> <div> <label htmlFor="preferred_business_model" className={labelClasses}>3.4. Modelo de Negocio de Preferencia</label> <select name="preferred_business_model" id="preferred_business_model" value={formData.preferred_business_model} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Elige un modelo o déjalo a la IA...</option> <option value="SaaS (Software como Servicio)" className="bg-gray-800">SaaS (Software como Servicio)</option> <option value="E-commerce (Venta Online Directa)" className="bg-gray-800">E-commerce (Venta Online Directa)</option> <option value="Marketplace (Plataforma Intermediaria)" className="bg-gray-800">Marketplace (Plataforma Intermediaria)</option> <option value="Contenido/Comunidad (Suscripción, Publicidad)" className="bg-gray-800">Contenido/Comunidad</option> <option value="Servicios Profesionales/Consultoría" className="bg-gray-800">Servicios Profesionales/Consultoría</option> <option value="Producto Físico (Diseño, Fabricación y Venta)" className="bg-gray-800">Producto Físico</option> </select> </div> </div> </div> <div className="md:col-span-2 pt-4"> <label className={labelClasses}>3.5. Valores Fundamentales para tu Futuro Negocio <span className="text-xs font-normal text-gray-500">(Selecciona hasta 3)</span></label> <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3 mt-1"> {CORE_VALUES_OPTIONS.map(value => ( <label key={value} className="flex items-center space-x-2.5 text-sm text-gray-300 cursor-pointer hover:text-purple-300 transition-colors"> <input type="checkbox" name="core_business_values" value={value} checked={formData.core_business_values?.includes(value)} onChange={handleCheckboxChange} disabled={(formData.core_business_values?.length ?? 0) >= 3 && !formData.core_business_values?.includes(value)} className="form-checkbox h-4 w-4 text-purple-600 bg-gray-600 border-gray-500 rounded focus:ring-purple-500 focus:ring-offset-gray-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50" /> <span>{value}</span> </label> ))} </div> </div> </section>
+        <form onSubmit={handleSubmit} className={`bg-gray-800/70 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-gray-700/50 mb-16`}>
+          
+          <div className="flex flex-col lg:flex-row lg:gap-8 space-y-12 lg:space-y-0">
 
-            <button type="submit" disabled={isGenerationDisabled} className="w-full py-3.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg transform transition-all hover:scale-105 active:scale-95 disabled:opacity-60 flex items-center justify-center text-base md:col-span-2 mt-10">
-              {isLoading ? 'Generando...' : ((isSavingIdeaName || isProcessingUnlock) ? 'Procesando...' : 'Generar Conceptos de Negocio con IA')}
-            </button>
-            {!isAuthenticated && !canGenerateAnonymously && (
-                <p className="text-center text-purple-300 text-sm mt-4">
-                    Has alcanzado el máximo de generaciones gratuitas. Regístrate o inicia sesión para más.
-                </p>
-            )}
-            {isAuthenticated && userLimits && !userLimits.can_generate_today && (
-                 <p className="text-center text-purple-300 text-sm mt-4">
-                    Has alcanzado tu límite diario de generaciones. Intenta de nuevo mañana.
-                </p>
-            )}
-            {isAuthenticated && userLimits && userLimits.can_generate_today && !userLimits.can_generate_this_month && (
-                 <p className="text-center text-purple-300 text-sm mt-4">
-                    Has alcanzado tu límite mensual de generaciones.
-                </p>
-            )}
-          </form>
-
-          {pageError && <p className="my-4 text-center text-red-400 bg-red-900/50 p-3 rounded-md">{pageError}</p>}
-
-          <div ref={resultsContainerRef} className="mt-10 scroll-mt-24">
-            {generatedIdeas.length > 0 && !isLoading && (
-              <>
-                <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-purple-300">¡Tus Conceptos de Negocio Personalizados!</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {generatedIdeas.map((idea, index) => {
-                    const unlockButtonClasses = idea.is_detailed_report_purchased ? 'text-green-300 border-green-500/70 bg-green-600/20 hover:bg-green-600/30 cursor-pointer' : 'text-blue-300 hover:text-blue-200 border-blue-500/70 hover:bg-blue-500/30';
-                    const saveButtonClasses = idea.isSaved ? 'bg-green-700/80 text-white border-green-700 cursor-not-allowed' : 'text-green-300 hover:text-green-200 border-green-500/70 hover:bg-green-500/30';
-                    return (
-                      <div key={idea.id || idea.idea_name + index} className="flex flex-col bg-gray-800/80 backdrop-blur-md p-6 rounded-xl shadow-2xl border border-gray-700/60 hover:border-purple-500/70 transition-all duration-300">
-                        <h3 className="text-xl font-semibold text-purple-300 mb-3">{idea.idea_name}</h3>
-                        <p className="text-gray-300 text-sm mb-5 flex-grow line-clamp-[10]">{idea.idea_description}</p>
-                        <div className="mt-auto space-y-2.5">
-                          <button onClick={() => openModalWithIdea(idea)} className="w-full text-sm text-purple-300 hover:text-purple-200 py-2.5 px-3 rounded-lg border border-purple-500/70 hover:bg-purple-500/30 transition-colors flex items-center justify-center"> Ver Resumen Básico </button>
-                          
-                          {/* --- BOTÓN "ADQUIRIR INFORME" EN TARJETA MODIFICADO --- */}
-                          <button 
-                            onClick={() => handleUnlockReport(idea)} 
-                            disabled={isProcessingUnlock === idea.idea_name && !idea.is_detailed_report_purchased} 
-                            className={`w-full text-sm py-2.5 px-3 rounded-lg border transition-colors disabled:opacity-60 flex items-center justify-center ${unlockButtonClasses}`}
-                          >
-                            {isProcessingUnlock === idea.idea_name && !idea.is_detailed_report_purchased
-                                ? (<> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Procesando...</>)
-                                : (idea.is_detailed_report_purchased
-                                    ? <><CheckIcon /> Ver Informe Detallado</>
-                                    : <><LockIcon /> Adquirir Informe Detallado ({DETAILED_REPORT_PRICE_DISPLAY})</>
-                                  )
-                            }
-                          </button>
-                          <button onClick={() => handleSaveIdea(idea, false)} disabled={isSavingIdeaName === idea.idea_name || idea.isSaved} className={`w-full text-sm py-2.5 px-3 rounded-lg border transition-colors disabled:opacity-60 flex items-center justify-center ${saveButtonClasses}`}> {isSavingIdeaName === idea.idea_name ? (<> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Guardando...</>) : (idea.isSaved ? <><CheckIcon /> ¡Guardada!</> : <><SaveIcon /> Guardar Idea</> )} </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className="lg:flex-1 space-y-5"> 
+              <section aria-labelledby="vision-heading" className={sectionSpacingClasses}>
+                <h2 id="vision-heading" className={sectionTitleClasses}>
+                  Paso 1: Tu Visión
+                  <span className="text-sm font-normal text-gray-400"> (Completa al menos uno de estos dos campos)</span>
+                </h2>
+                <div className={fieldGroupClasses}>
+                  <div>
+                    <label htmlFor="idea_seed" className={labelClasses}>
+                      1. ¿Tienes una idea o concepto inicial en mente?
+                      <span className="block text-xs font-normal text-gray-400/80 mt-1">Si ya tienes un chispazo o un área de enfoque, compártela.</span>
+                    </label>
+                    <textarea name="idea_seed" id="idea_seed" value={formData.idea_seed} onChange={handleChange} rows={3} className={inputClasses} placeholder='Ej: "Plataforma de IA para optimizar logística de última milla" o "Moda sostenible con materiales reciclados"' />
+                  </div>
+                  <div>
+                    <label htmlFor="problem_to_solve" className={labelClasses}>
+                      2. ¿Qué problema o necesidad clave buscas abordar?
+                      <span className="block text-xs font-normal text-gray-400/80 mt-1">Describe el desafío o la oportunidad que quieres abordar.</span>
+                    </label>
+                    <textarea name="problem_to_solve" id="problem_to_solve" value={formData.problem_to_solve} onChange={handleChange} rows={3} className={inputClasses} placeholder='Ej: "La ineficiencia en la gestión de inventarios para PyMEs" o "La falta de opciones de ocio saludable para jóvenes en áreas urbanas"' />
+                  </div>
                 </div>
-              </>
-            )}
+              </section>
+
+              <section aria-labelledby="profile-heading" className={sectionSpacingClasses}>
+                <h2 id="profile-heading" className={sectionTitleClasses}>
+                  Paso 2: Sobre Ti
+                  <span className="text-sm font-normal text-gray-400"> (Opcional)</span>
+                </h2>
+                <div className="grid md:grid-cols-2 md:gap-x-8 gap-y-6">
+                  <div className={fieldGroupClasses}>
+                    <div>
+                      <label htmlFor="interests" className={labelClasses}> 2.1. Nichos o Industrias de Interés Principal <span className="block text-xs font-normal text-gray-400/80 mt-1">Separa por comas. Ej: Fintech, IA en salud, E-commerce de autor</span></label>
+                      <input type="text" name="interests" id="interests" value={formData.interests} onChange={handleChange} className={inputClasses} placeholder="Ej: Energías renovables, EdTech, Bienestar digital" />
+                    </div>
+                    <div>
+                      <label htmlFor="resources_time" className={labelClasses}>2.3. Dedicación Estimada al Proyecto</label>
+                      <select name="resources_time" id="resources_time" value={formData.resources_time} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Elige tu disponibilidad...</option> <option value="Menos de 10 horas semanales" className="bg-gray-800">Menos de 10 horas/semana (Complementario)</option> <option value="10-20 horas semanales" className="bg-gray-800">10-20 horas/semana (Medio tiempo)</option> <option value="Más de 20 horas semanales (Full-time)" className="bg-gray-800">Más de 20 horas/semana (Dedicación completa)</option> </select>
+                    </div>
+                  </div>
+                  <div className={fieldGroupClasses}>
+                    <div>
+                      <label htmlFor="skills" className={labelClasses}> 2.2. Tus Habilidades o Experiencia Clave <span className="block text-xs font-normal text-gray-400/80 mt-1">Separa por comas. Ej: Desarrollo Full-Stack, Marketing Digital</span></label>
+                      <input type="text" name="skills" id="skills" value={formData.skills} onChange={handleChange} className={inputClasses} placeholder="Ej: Gestión de Proyectos Ágiles, Ventas B2B, Diseño UX/UI" />
+                    </div>
+                    <div>
+                      <label htmlFor="resources_capital" className={labelClasses}>2.4. Capacidad de Inversión Inicial</label>
+                      <select name="resources_capital" id="resources_capital" value={formData.resources_capital} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Define tu capacidad...</option> <option value="Muy bajo (Bootstrap/Casi nulo)" className="bg-gray-800">Bootstrap / Fondos mínimos</option> <option value="Bajo (Algunos ahorros personales)" className="bg-gray-800">Ahorros personales (Bajo)</option> <option value="Medio (Inversión moderada o 'Amigos y Familia')" className="bg-gray-800">Inversión moderada (Medio)</option> <option value="Alto (Busco 'Ángeles Inversionistas' / Capital Semilla)" className="bg-gray-800">Capital Semilla / Inversores (Alto)</option> </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div> 
+
+            {/* Columna Derecha (Paso 3) */}
+            <div className="lg:flex-1">
+              <section aria-labelledby="preferences-heading" className={sectionSpacingClasses}>
+                <h2 id="preferences-heading" className={sectionTitleClasses}>
+                  Paso 3: Ajustes Finos
+                  <span className="text-sm font-normal text-gray-400"> (Opcional)</span>
+                </h2>
+                {/* ----- INICIO CAMBIO: Campos del Paso 3 ahora en una sola columna (apilados) ----- */}
+                <div className="space-y-6"> {/* Usamos space-y-6 para espaciar los campos verticalmente */}
+                  {/* Ya no hay un grid aquí, cada 'fieldGroupClasses' se apilará */}
+                  <div className={fieldGroupClasses}> {/* Primer par de campos */}
+                      <div> 
+                        <label htmlFor="target_audience" className={labelClasses}> 3.1. Describe tu Cliente o Usuario Ideal <span className="block text-xs font-normal text-gray-400/80 mt-1">¿A quién te diriges? Mientras más detalles, más precisa la IA.</span> </label>
+                        <textarea name="target_audience" id="target_audience" value={formData.target_audience} onChange={handleChange} rows={2} className={inputClasses} placeholder='Ej: "Startups B2B en sector SaaS con 10-50 empleados" o "Millennials eco-conscientes (25-35 años) en grandes ciudades"' />
+                      </div>
+                      <div className="mt-6 md:mt-0"> {/* Añadido mt-6 para móvil, md:mt-0 ya no es necesario aquí si siempre es columna */}
+                        <label htmlFor="innovation_level" className={labelClasses}>3.3. Nivel de Innovación que Buscas</label>
+                        <select name="innovation_level" id="innovation_level" value={formData.innovation_level} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Selecciona el alcance...</option> <option value="Incremental" className="bg-gray-800">Incremental (Mejorar algo existente)</option> <option value="Adaptativa" className="bg-gray-800">Adaptativa (Aplicar un modelo exitoso a un nuevo nicho)</option> <option value="Disruptiva" className="bg-gray-800">Disruptiva (Crear o transformar un mercado)</option> </select>
+                      </div>
+                  </div>
+                  <div className={fieldGroupClasses}> {/* Segundo par de campos */}
+                      <div>
+                        <label htmlFor="risk_aversion" className={labelClasses}>3.2. Tu Tolerancia al Riesgo Empresarial</label>
+                        <select name="risk_aversion" id="risk_aversion" value={formData.risk_aversion} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificada" className="text-gray-500 bg-gray-800">Define tu perfil de riesgo...</option> <option value="Muy alta (Prefiero algo muy seguro y probado)" className="bg-gray-800">Muy alta (Busco máxima seguridad)</option> <option value="Alta (Cauteloso, prefiero minimizar riesgos)" className="bg-gray-800">Alta (Cauteloso)</option> <option value="Media (Abierto a riesgos calculados)" className="bg-gray-800">Media (Equilibrado)</option> <option value="Baja (Dispuesto a tomar riesgos significativos por alta recompensa)" className="bg-gray-800">Baja (Audaz)</option> </select>
+                      </div>
+                      <div className="mt-6 md:mt-0">
+                        <label htmlFor="preferred_business_model" className={labelClasses}>3.4. Modelo de Negocio de Preferencia</label>
+                        <select name="preferred_business_model" id="preferred_business_model" value={formData.preferred_business_model} onChange={handleChange} className={selectClasses} style={{ backgroundImage: selectArrowSvg}}> <option value="No especificado" className="text-gray-500 bg-gray-800">Elige un modelo o déjalo a la IA...</option> <option value="SaaS (Software como Servicio)" className="bg-gray-800">SaaS (Software como Servicio)</option> <option value="E-commerce (Venta Online Directa)" className="bg-gray-800">E-commerce (Venta Online Directa)</option> <option value="Marketplace (Plataforma Intermediaria)" className="bg-gray-800">Marketplace (Plataforma Intermediaria)</option> <option value="Contenido/Comunidad (Suscripción, Publicidad)" className="bg-gray-800">Contenido/Comunidad</option> <option value="Servicios Profesionales/Consultoría" className="bg-gray-800">Servicios Profesionales/Consultoría</option> <option value="Producto Físico (Diseño, Fabricación y Venta)" className="bg-gray-800">Producto Físico</option> </select>
+                      </div>
+                  </div>
+                </div>
+                {/* ----- FIN CAMBIO ----- */}
+                <div className="pt-4 mt-6 border-t border-gray-700/50"> {/* El md:col-span-2 ya no aplica al div de checkboxes si no está en un grid directo */}
+                  <label className={labelClasses}>3.5. Valores Fundamentales para tu Futuro Negocio <span className="text-xs font-normal text-gray-500">(Selecciona hasta 3)</span></label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 mt-1"> {/* Mantenemos grid para los checkboxes */}
+                    {CORE_VALUES_OPTIONS.map(value => (
+                      <label key={value} className="flex items-center space-x-2.5 text-sm text-gray-300 cursor-pointer hover:text-purple-300 transition-colors">
+                        <input type="checkbox" name="core_business_values" value={value} checked={formData.core_business_values?.includes(value)} onChange={handleCheckboxChange} disabled={(formData.core_business_values?.length ?? 0) >= 3 && !formData.core_business_values?.includes(value)} className="form-checkbox h-4 w-4 text-purple-600 bg-gray-600 border-gray-500 rounded focus:ring-purple-500 focus:ring-offset-gray-800 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50" />
+                        <span>{value}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </div>
           </div>
+
+          <button type="submit" disabled={isGenerationDisabled} className="w-full mt-12 py-3.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg transform transition-all hover:scale-105 active:scale-95 disabled:opacity-60 flex items-center justify-center text-base">
+            {isLoading ? 'Generando...' : ((isSavingIdeaName || isProcessingUnlock) ? 'Procesando...' : 'Generar Conceptos de Negocio con IA')}
+          </button>
+          {!isAuthenticated && !canGenerateAnonymously && ( <p className="text-center text-purple-300 text-sm mt-4"> Has alcanzado el máximo de generaciones gratuitas. Regístrate o inicia sesión para más. </p> )}
+          {isAuthenticated && userLimits && !userLimits.can_generate_today && ( <p className="text-center text-purple-300 text-sm mt-4"> Has alcanzado tu límite diario de generaciones. Intenta de nuevo mañana. </p> )}
+          {isAuthenticated && userLimits && userLimits.can_generate_today && !userLimits.can_generate_this_month && ( <p className="text-center text-purple-300 text-sm mt-4"> Has alcanzado tu límite mensual de generaciones. </p> )}
+        </form>
+
+        {pageError && <p className="my-4 text-center text-red-400 bg-red-900/50 p-3 rounded-md">{pageError}</p>}
+        <div ref={resultsContainerRef} className="mt-10 scroll-mt-24">
+            {/* ... tu lógica para mostrar generatedIdeas ... */}
         </div>
       </div>
+    </div>
 
       {/* --- MODAL "RESUMEN BÁSICO" MODIFICADO --- */}
       {isModalOpen && selectedIdea && (

@@ -13,15 +13,17 @@ import Image from 'next/image';
 const PRODUCT_TITLE = "Informe Detallado Génesis AI";
 const PRODUCT_UNIT_PRICE_ARS = 10000.00; // Asegúrate que este sea el valor esperado por tu backend
 
+const ACTION_COMPLETED_SIGNAL_KEY = 'genesisAI_action_completed_v1';
+
 // --- Lógica de Inicialización Global de Mercado Pago ---
 // (Tu lógica de inicialización existente - SIN CAMBIOS)
-const YOUR_MP_PUBLIC_KEY_TEST = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const YOUR_MP_PUBLIC_KEY_TEST = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY_TEST;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const backendUrl = `${API_BASE_URL}/api/v1/payments/process-checkout-api`;
 
 if (typeof window !== 'undefined') {
   if (!API_BASE_URL) {
-    console.error("CRÍTICO: NEXT_PUBLIC_API_BASE_URL no está configurado en .env.local.");
+    console.error("CRÍTICO: NEXT_PUBLIC_API_URL no está configurado en .env.local.");
   }
   if (!(window as any).__mp_initialized_global_for_checkout_page && YOUR_MP_PUBLIC_KEY_TEST) {
     try {
@@ -37,7 +39,7 @@ if (typeof window !== 'undefined') {
   }
 }
 // --- Fin Lógica de Inicialización Global ---
-console.log("MP Public Key (Frontend):", process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY)
+
 // --- NUEVO: Definición de estados para el polling ---
 type ReportGenerationStatus = "idle" | "payment_processing" | "report_generating" | "report_ready" | "report_timeout" | "report_error";
 
@@ -134,11 +136,38 @@ export default function CheckoutPage() {
         });
 
         if (response.status === 200) { // ¡Informe Listo!
-          logger.log("Informe listo para idea ${ideaId}! Redirigiendo..."); //NUEVO
-          if (pollIntervalId) clearInterval(pollIntervalId);
-          setReportGenerationApiStatus("report_ready");
-          toast.success("¡Tu informe detallado está listo!");
-          router.push(`/idea/${ideaId}/report`);
+    logger.log(`[CheckoutPage] Informe listo para idea ${ideaId} (status 200 del polling).`); 
+    if (pollIntervalId) clearInterval(pollIntervalId);
+    setReportGenerationApiStatus("report_ready");
+    
+    const purchaseUpdateSignal = { 
+        actionCompletedForIdeaId: ideaId,
+        is_detailed_report_purchased: true,
+        payment_provider: 'mercadopago',
+        timestamp: Date.now() 
+    };
+
+    // --- LOGS CRUCIALES AQUÍ ---
+    console.log("[CheckoutPage] INTENTANDO GUARDAR SEÑAL:", JSON.stringify(purchaseUpdateSignal));
+    try {
+        sessionStorage.setItem(ACTION_COMPLETED_SIGNAL_KEY, JSON.stringify(purchaseUpdateSignal));
+        // --- VERIFICACIÓN INMEDIATA ---
+        const verificacion = sessionStorage.getItem(ACTION_COMPLETED_SIGNAL_KEY);
+        console.log("[CheckoutPage] SEÑAL GUARDADA Y VERIFICADA:", verificacion);
+        if (verificacion !== JSON.stringify(purchaseUpdateSignal)) {
+            console.error("[CheckoutPage] ¡FALLO EN LA VERIFICACIÓN! La señal no se guardó como se esperaba.");
+        }
+        // --- FIN VERIFICACIÓN ---
+        logger.log(`[CheckoutPage] Señal de ACCIÓN COMPLETADA (con estado de compra) guardada para idea ID: ${ideaId}`, purchaseUpdateSignal);
+    } catch (e) {
+        console.error("[CheckoutPage] ERROR AL INTENTAR GUARDAR SEÑAL en sessionStorage:", e);
+        logger.error("[CheckoutPage] Error guardando señal de acción completada en sessionStorage:", e);
+    }
+    
+    toast.success("¡Tu informe detallado está listo!");
+    console.log("[CheckoutPage] Redirigiendo AHORA a la página del informe...");
+    router.push(`/idea/${ideaId}/report`); 
+ 
         } else if (response.status === 202) { // Sigue procesando
           logger.log("Informe aún procesándose para idea ${ideaId}, reintentando..."); //NUEVO
           // El intervalo ya está configurado, simplemente esperamos la próxima ejecución

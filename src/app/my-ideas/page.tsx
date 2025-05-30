@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import PayPalButtonWrapper from '@/components/PayPalButtonWrapper';
 
 // --- INICIO Iconos SVG ---
 const IconWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "w-4 h-4" }) => ( <span className={`${className} inline-block align-middle`}>{children}</span> );
@@ -21,12 +22,17 @@ interface IdeaFromDB {
     id: number; user_id: string; created_at: string; updated_at: string; idea_name: string; idea_description: string;
     personalization_justification: string; suggested_business_model: string;
     preliminary_viability_analysis: { oportunidad_disruptiva: string; riesgo_clave_no_obvio: string; };
-    suggested_next_steps: string[]; is_detailed_report_purchased: boolean; detailed_report_content?: any;
-}
+    suggested_next_steps: string[]; is_detailed_report_purchased: boolean; detailed_report_content?: any; payment_provider?: 'mercadopago' | 'paypal';
+    _productType?: 'detailed_report' | 'extended_viability'; is_extended_viability_purchased?: boolean; extended_viability_content?: any;
+}  
 interface ApiError { detail: string; }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const DETAILED_REPORT_PRICE_DISPLAY = "ARS 10.000"; // Usar esta constante para mostrar el precio
+const DETAILED_REPORT_PRICE_DISPLAY_ARS = "ARS 10.000";
+const DETAILED_REPORT_PRICE_USD_PAYPAL = "10.00"; // Modificado para que sea solo el número
+
+const EXTENDED_VIABILITY_PRICE_DISPLAY_ARS = "ARS 5.000"; 
+const EXTENDED_VIABILITY_PRICE_USD_PAYPAL = "5.00";  
 
 function MyIdeasContent() {
   const { user, session, isLoading: authIsLoading, isAuthenticated } = useAuth();
@@ -39,6 +45,13 @@ function MyIdeasContent() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [isPaymentConfirmModalOpen, setIsPaymentConfirmModalOpen] = useState(false);
+  const [ideaForPaymentConfirmation, setIdeaForPaymentConfirmation] = useState<IdeaFromDB | null>(null);
+  
+  const [isProcessingExtendedViaMP, setIsProcessingExtendedViaMP] = useState<number | null>(null);
+  const [isPreparingPayPalForExtended, setIsPreparingPayPalForExtended] = useState<number | null>(null);
+  const [showPayPalButtonsForExtended, setShowPayPalButtonsForExtended] = useState(false);
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -46,36 +59,154 @@ function MyIdeasContent() {
   const closeModal = useCallback(() => { setIsModalOpen(false); setSelectedIdea(null); }, []);
   const closeDeleteModal = useCallback(() => { setIsDeleteModalOpen(false); setIdeaToDelete(null); }, []);
   
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => { if (event.key === 'Escape') { if (isModalOpen) closeModal(); if (isDeleteModalOpen) closeDeleteModal(); } };
-    if (isModalOpen || isDeleteModalOpen) { document.body.style.overflow = 'hidden'; window.addEventListener('keydown', handleEsc); return () => { document.body.style.overflow = 'unset'; window.removeEventListener('keydown', handleEsc); }; }
-  }, [isModalOpen, closeModal, isDeleteModalOpen, closeDeleteModal]);
+  const openPaymentConfirmModal = useCallback((idea: IdeaFromDB, productType: 'detailed_report' | 'extended_viability') => {
+    console.log(`[MyIdeas] Abriendo modal de confirmación de pago para idea ID: ${idea.id}, producto: ${productType}`);
+    setIdeaForPaymentConfirmation({ ...idea, _productType: productType });
+    setIsPaymentConfirmModalOpen(true);
+    
+    setShowPayPalButtonsForExtended(false);
+    setIsPreparingPayPalForExtended(null);
+    if (productType === 'extended_viability') {
+      setIsProcessingExtendedViaMP(null);
+    }
+  }, []);
 
+  const closePaymentConfirmModal = useCallback(() => {
+    setIsPaymentConfirmModalOpen(false);
+    setIdeaForPaymentConfirmation(null); 
+    
+    setShowPayPalButtonsForExtended(false);
+    setIsPreparingPayPalForExtended(null);
+    setIsProcessingExtendedViaMP(null);
+  }, []);
+
+  const handleAcquireExtendedModule = (idea: IdeaFromDB) => {
+    if (!idea.id) {
+        toast.error("La idea no tiene un ID válido para adquirir el módulo.");
+        return;
+    }
+    if (idea.is_extended_viability_purchased) {
+        toast.info("Ya has adquirido el Análisis Extendido para esta idea.");
+        return;
+    }
+    if (!idea.is_detailed_report_purchased) {
+        toast.warn("Debes adquirir primero el Informe Detallado para poder comprar el Análisis Extendido.");
+        return;
+    }
+    if (authIsLoading) {
+        toast.info("Verificando tu sesión...");
+        return;
+    }
+    if (!isAuthenticated || !session?.access_token) {
+        toast.warn("Debes iniciar sesión para adquirir módulos adicionales.");
+        try {
+            sessionStorage.setItem('pendingAction_myIdeas', JSON.stringify({ 
+                type: 'acquireExtendedModule', 
+                ideaId: idea.id,
+            }));
+             if (myIdeas.length > 0) {
+                sessionStorage.setItem('myIdeas_tempState', JSON.stringify(myIdeas));
+            }
+        } catch (e) {
+            console.error("Error guardando pendingAction_myIdeas en sessionStorage:", e);
+        }
+        router.push(`/login?redirect=${pathname}&action=pendingExtendedModule_myIdeas`);
+        return;
+    }
+    openPaymentConfirmModal(idea, 'extended_viability');
+  };
+
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => { 
+        if (event.key === 'Escape') { 
+            if (isModalOpen) closeModal(); 
+            if (isDeleteModalOpen) closeDeleteModal();
+            if (isPaymentConfirmModalOpen) closePaymentConfirmModal();
+        } 
+    };
+    if (isModalOpen || isDeleteModalOpen || isPaymentConfirmModalOpen) {
+        document.body.style.overflow = 'hidden'; 
+        window.addEventListener('keydown', handleEsc); 
+        return () => { 
+            document.body.style.overflow = 'unset'; 
+            window.removeEventListener('keydown', handleEsc); 
+        }; 
+    }
+  }, [isModalOpen, closeModal, isDeleteModalOpen, closeDeleteModal, isPaymentConfirmModalOpen, closePaymentConfirmModal]);
+  
   const fetchMyIdeas = useCallback(async () => {
-    if (isAuthenticated && session?.access_token) { setPageLoading(true); setError(null); try { const response = await fetch(`${API_BASE_URL}/api/v1/ideas/me`, { method: 'GET', headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, }); if (!response.ok) { let errorDetail = `Error ${response.status}`; try { const errorData: ApiError = await response.json(); errorDetail = errorData.detail || errorDetail; } catch (e) {} throw new Error(errorDetail); } const data: IdeaFromDB[] = await response.json(); setMyIdeas(data); } catch (err: any) { const errorMessage = err.message || "No se pudieron cargar tus ideas."; setError(errorMessage); toast.error(errorMessage); } finally { setPageLoading(false); } } else { setMyIdeas([]); setPageLoading(false); }
+    if (isAuthenticated && session?.access_token) { 
+        setPageLoading(true); 
+        setError(null); 
+        try { 
+            const response = await fetch(`${API_BASE_URL}/api/v1/ideas/me`, { 
+                method: 'GET', 
+                headers: { 
+                    'Authorization': `Bearer ${session.access_token}`, 
+                    'Content-Type': 'application/json' 
+                }, 
+            }); 
+            if (!response.ok) { 
+                let errorDetail = `Error ${response.status}`; 
+                try { 
+                    const errorData: ApiError = await response.json(); 
+                    errorDetail = errorData.detail || errorDetail; 
+                } catch (e) {} 
+                throw new Error(errorDetail); 
+            } 
+            const data: IdeaFromDB[] = await response.json(); 
+            setMyIdeas(data); 
+        } catch (err: any) { 
+            const errorMessage = err.message || "No se pudieron cargar tus ideas."; 
+            setError(errorMessage); 
+            toast.error(errorMessage); 
+        } finally { 
+            setPageLoading(false); 
+        } 
+    } else { 
+        setMyIdeas([]); 
+        setPageLoading(false); 
+    }
   }, [isAuthenticated, session, API_BASE_URL]);
 
   useEffect(() => {
-    if (!authIsLoading) { if (isAuthenticated && session?.access_token) { fetchMyIdeas(); } else { setMyIdeas([]); setPageLoading(false); } }
-  }, [authIsLoading, isAuthenticated, session, fetchMyIdeas]);
-
-  // YA NO SE USA handleUnlockReportFlow porque el botón redirige directamente.
-  // Se elimina esta función o se comenta si se piensa reusar de otra forma.
-  /*
-  const handleUnlockReportFlow = useCallback((ideaId: number) => {
-    if (!ideaId) {
-        toast.error("ID de idea no válido.");
-        return;
+    if (!authIsLoading) { 
+        if (isAuthenticated && session?.access_token) { 
+            fetchMyIdeas(); 
+        } else { 
+            setMyIdeas([]); 
+            setPageLoading(false); 
+        } 
     }
-    console.log(`Redirigiendo al checkout para idea ID: ${ideaId} desde handleUnlockReportFlow`);
-    router.push(`/idea/${ideaId}/checkout`);
-  }, [router]);
-  */
+  }, [authIsLoading, isAuthenticated, session, fetchMyIdeas]);
 
   const openDeleteModal = (idea: IdeaFromDB) => { setIdeaToDelete(idea); setIsDeleteModalOpen(true); };
   const confirmDeleteIdea = useCallback(async () => {
-    if (!ideaToDelete || !ideaToDelete.id || !session?.access_token) { toast.error("No se puede borrar."); closeDeleteModal(); return; } setIsDeleting(true); try { const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaToDelete.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${session.access_token}`, }, }); if (response.status === 204) { toast.success(`Idea eliminada.`); setMyIdeas(prevIdeas => prevIdeas.filter(idea => idea.id !== ideaToDelete.id)); } else { const errorData = await response.json().catch(() => null); throw new Error(errorData?.detail || `Error al eliminar.`); } } catch (err: any) { toast.error(err.message); } finally { setIsDeleting(false); closeDeleteModal(); }
-  }, [ideaToDelete, session, closeDeleteModal, API_BASE_URL]);
+    if (!ideaToDelete || !ideaToDelete.id || !session?.access_token) { 
+        toast.error("No se puede borrar."); 
+        closeDeleteModal(); 
+        return; 
+    } 
+    setIsDeleting(true); 
+    try { 
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaToDelete.id}`, { 
+            method: 'DELETE', 
+            headers: { 'Authorization': `Bearer ${session.access_token}` }, 
+        }); 
+        if (response.status === 204) { 
+            toast.success(`Idea eliminada.`); 
+            setMyIdeas(prevIdeas => prevIdeas.filter(idea => idea.id !== ideaToDelete.id)); 
+        } else { 
+            const errorData = await response.json().catch(() => null); 
+            throw new Error(errorData?.detail || `Error al eliminar.`); 
+        } 
+    } catch (err: any) { 
+        toast.error(err.message); 
+    } finally { 
+        setIsDeleting(false); 
+        closeDeleteModal(); 
+    }
+  }, [ideaToDelete, session, closeDeleteModal, API_BASE_URL, setMyIdeas]);
 
   if (authIsLoading) { return <div className="min-h-screen flex items-center justify-center"><p>Verificando...</p></div>; }
   if (!isAuthenticated) { return <div className="min-h-screen flex flex-col items-center justify-center"><h1 className="text-2xl">Acceso Denegado</h1><Link href={`/login?redirect=${pathname}`}>Iniciar Sesión</Link></div>; }
@@ -100,22 +231,19 @@ function MyIdeasContent() {
                 <p className="text-xs text-gray-500 mb-4"> Guardada el: {idea.created_at ? new Date(idea.created_at).toLocaleDateString() : 'N/A'} </p>
                 <div className="mt-auto space-y-2">
                   <button onClick={() => openModalWithIdea(idea)} className="w-full text-sm text-purple-400 hover:text-purple-300 py-2 px-3 rounded-md border border-purple-500 hover:bg-purple-500/20 transition-colors flex items-center justify-center"> <EyeIcon /> Ver Resumen Básico </button>
-
-                  {/* --- BOTÓN MODIFICADO EN LA TARJETA --- */}
                   <button
                       onClick={() => {
                         if (idea.is_detailed_report_purchased) {
                           if (idea.id) {
                             router.push(`/idea/${idea.id}/report`);
                           } else {
-                            toast.error("Error: Idea sin ID para ver el informe."); // Caso improbable aquí
+                            toast.error("Error: Idea sin ID para ver el informe.");
                           }
                         } else {
-                          if (idea.id) { // Si no está comprado, y tiene ID, ir a checkout
-                            console.log(`MyIdeasPage CARD: Redirecting to checkout for idea ID: ${idea.id}`);
-                            router.push(`/idea/${idea.id}/checkout`);
+                          if (idea.id) {
+                            openPaymentConfirmModal(idea, 'detailed_report'); 
                           } else {
-                            toast.error("Error: Idea sin ID para adquirir informe."); // Caso improbable aquí
+                            toast.error("Error: Idea sin ID para adquirir informe."); 
                           }
                         }
                       }}
@@ -127,8 +255,41 @@ function MyIdeasContent() {
                   >
                       { idea.is_detailed_report_purchased
                           ? <><CheckIcon /> Ver Informe Detallado</>
-                          : <><LockIcon /> Adquirir Informe Detallado <span className="ml-1.5 text-xs font-medium text-purple-300">({DETAILED_REPORT_PRICE_DISPLAY})</span></>
+                          : <><LockIcon /> Adquirir Informe Detallado <span className="ml-1.5 text-xs font-medium text-purple-300">({DETAILED_REPORT_PRICE_DISPLAY_ARS})</span></>
                       }
+                  </button>
+                  <button 
+                      onClick={() => handleAcquireExtendedModule(idea)}
+                      disabled={
+                          !idea.is_detailed_report_purchased || 
+                          idea.is_extended_viability_purchased || 
+                          isProcessingExtendedViaMP === idea.id ||
+                          isPreparingPayPalForExtended === idea.id 
+                      }
+                      className={`w-full text-sm py-2 px-3 rounded-md border transition-colors flex items-center justify-center
+                          ${!idea.is_detailed_report_purchased 
+                              ? 'text-gray-500 border-gray-600 bg-gray-700/30 cursor-not-allowed opacity-60' 
+                              : idea.is_extended_viability_purchased
+                                  ? 'text-teal-400 border-teal-600 bg-teal-600/20 hover:bg-teal-600/30 cursor-pointer'
+                                  : 'text-amber-400 hover:text-amber-300 border-amber-600 hover:bg-amber-600/20'
+                          }
+                          ${(isProcessingExtendedViaMP === idea.id && !idea.is_extended_viability_purchased) || (isPreparingPayPalForExtended === idea.id && !idea.is_extended_viability_purchased) ? 'opacity-70 cursor-wait' : ''}
+                      `}
+                      title={
+                          !idea.is_detailed_report_purchased 
+                          ? "Primero debes adquirir el Informe Detallado" 
+                          : (idea.is_extended_viability_purchased 
+                              ? "Ya tienes este análisis avanzado" 
+                              : `Adquirir Análisis Avanzado (${EXTENDED_VIABILITY_PRICE_DISPLAY_ARS})`)
+                      }
+                  >
+                      {(isProcessingExtendedViaMP === idea.id && !idea.is_extended_viability_purchased) || (isPreparingPayPalForExtended === idea.id && !idea.is_extended_viability_purchased) ? (
+                          <> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Procesando...</>
+                      ) : idea.is_extended_viability_purchased ? (
+                          <><CheckIcon /> Análisis Avanzado Adquirido</>
+                      ) : (
+                          <><PlusIcon /> Adquirir Análisis Avanzado</> 
+                      )}
                   </button>
                 </div>
               </div>
@@ -137,7 +298,6 @@ function MyIdeasContent() {
         )}
       </div>
 
-      {/* --- Modal para Resumen Básico --- */}
       {isModalOpen && selectedIdea && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={closeModal}>
           <div className="bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-fade-in-up scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-gray-700" onClick={(e) => e.stopPropagation()}>
@@ -150,7 +310,6 @@ function MyIdeasContent() {
               {selectedIdea.is_detailed_report_purchased && ( <div className="mt-6 pt-4 border-t border-gray-700"> <h3 className="text-sm font-semibold text-green-400 mb-1">Informe Detallado Adquirido</h3> <p className="text-xs text-gray-400">Puedes ver el informe completo.</p> </div> )}
               
               <div className="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                {/* --- BOTÓN MODIFICADO EN EL MODAL --- */}
                 <button
                     onClick={() => {
                         if (selectedIdea?.is_detailed_report_purchased) {
@@ -160,9 +319,9 @@ function MyIdeasContent() {
                             } else {
                                 toast.error("Error: Idea sin ID para ver el informe.");
                             }
-                        } else { // Si no está comprado, ir a checkout
+                        } else { 
                             if (selectedIdea?.id) {
-                                closeModal(); // Cerrar modal antes de navegar
+                                closeModal(); 
                                 console.log(`MyIdeasPage MODAL: Redirecting to checkout for idea ID: ${selectedIdea.id}`);
                                 router.push(`/idea/${selectedIdea.id}/checkout`);
                             } else {
@@ -178,7 +337,7 @@ function MyIdeasContent() {
                 >
                     { selectedIdea?.is_detailed_report_purchased
                         ? <><CheckIcon /> Ver Informe Detallado</>
-                        : <><LockIcon /> Adquirir Informe Detallado <span className="ml-1.5 text-xs font-medium text-purple-300">({DETAILED_REPORT_PRICE_DISPLAY})</span></>
+                        : <><LockIcon /> Adquirir Informe Detallado <span className="ml-1.5 text-xs font-medium text-purple-300">({DETAILED_REPORT_PRICE_DISPLAY_ARS})</span></>
                     }
                 </button>
                 <button onClick={closeModal} className="w-full sm:w-auto px-5 py-2.5 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-md shadow-md flex items-center justify-center">Cerrar</button>
@@ -187,6 +346,227 @@ function MyIdeasContent() {
           </div>
         </div>
       )}
+
+      {isPaymentConfirmModalOpen && ideaForPaymentConfirmation && (
+        <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" 
+            onClick={closePaymentConfirmModal}
+        >
+            <div
+                className="bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-fade-in-up scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-gray-700"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-purple-400">
+                        Confirmar Adquisición: {ideaForPaymentConfirmation._productType === 'extended_viability' 
+                            ? 'Análisis Extendido de Viabilidad' 
+                            : 'Informe Detallado'}
+                    </h2>
+                    <button 
+                        onClick={closePaymentConfirmModal} 
+                        className="text-gray-400 hover:text-white text-3xl leading-none p-1 -mr-2"
+                        aria-label="Cerrar modal"
+                    >×</button>
+                </div>
+
+                <div className="space-y-4 text-gray-300">
+                    <p>
+                    Estás a punto de adquirir el <strong className="text-purple-300">{
+                        ideaForPaymentConfirmation._productType === 'extended_viability' 
+                            ? 'Análisis Extendido de Viabilidad' 
+                            : 'Informe Detallado'
+                    }</strong> para la idea:
+                    </p>
+                    <p className="text-lg font-semibold text-white bg-gray-700/50 p-3 rounded-md break-words">
+                        {ideaForPaymentConfirmation.idea_name}
+                    </p>
+                    <p className="text-sm">
+                        {ideaForPaymentConfirmation._productType === 'extended_viability' 
+                            ? "Este módulo profundiza en la viabilidad, validación de hipótesis y estrategias de mitigación de riesgos para complementar tu informe detallado."
+                            : "Este informe te proporcionará un análisis exhaustivo, incluyendo estrategias de mercado, modelo de negocio detallado, plan de acción paso a paso, y mucho más."
+                        }
+                    </p>
+                    
+                    {!showPayPalButtonsForExtended && (
+                        <div className="text-center my-4 space-y-2">
+                            <div>
+                                <p className="text-sm text-gray-400">Precio (Mercado Pago):</p>
+                                <p className="text-2xl font-bold text-green-400">
+                                    {ideaForPaymentConfirmation._productType === 'extended_viability' 
+                                        ? EXTENDED_VIABILITY_PRICE_DISPLAY_ARS 
+                                        : DETAILED_REPORT_PRICE_DISPLAY_ARS}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-400">o Precio (PayPal):</p>
+                                <p className="text-2xl font-bold text-green-400">
+                                    USD {ideaForPaymentConfirmation._productType === 'extended_viability' 
+                                        ? EXTENDED_VIABILITY_PRICE_USD_PAYPAL 
+                                        : DETAILED_REPORT_PRICE_USD_PAYPAL}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                     {(isPreparingPayPalForExtended === ideaForPaymentConfirmation.id) && !showPayPalButtonsForExtended && ideaForPaymentConfirmation && (
+                         <p className="text-center text-sm text-gray-400 py-2">Preparando pago con PayPal...</p>
+                    )}
+
+                    <p className="text-xs text-gray-500">
+                        Al confirmar, serás redirigido a la pasarela de pago.
+                    </p>
+                </div>
+
+                <div className="mt-8 flex flex-col space-y-3">
+                    {!showPayPalButtonsForExtended && (
+                        <>
+                            <button
+                                onClick={async () => {
+                                    if (ideaForPaymentConfirmation && ideaForPaymentConfirmation.id) {
+                                        if (ideaForPaymentConfirmation._productType === 'extended_viability') {
+                                            setIsProcessingExtendedViaMP(ideaForPaymentConfirmation.id);
+                                            console.log(`[MyIdeasModal] Iniciando checkout MP para Módulo Extendido, idea ID: ${ideaForPaymentConfirmation.id}`);
+                                            toast.info("Checkout de Mercado Pago para Módulo Extendido (a implementar).");
+                                        } else if (ideaForPaymentConfirmation._productType === 'detailed_report') {
+                                            console.log(`[MyIdeasModal] Iniciando checkout MP para Informe Detallado, idea ID: ${ideaForPaymentConfirmation.id}`);
+                                            router.push(`/idea/${ideaForPaymentConfirmation.id}/checkout`);
+                                        }
+                                    }
+                                }}
+                                disabled={
+                                    (ideaForPaymentConfirmation && isProcessingExtendedViaMP === ideaForPaymentConfirmation.id) || 
+                                    (ideaForPaymentConfirmation && isPreparingPayPalForExtended === ideaForPaymentConfirmation.id)
+                                }
+                                className="w-full px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg shadow-md transition-colors disabled:opacity-60 flex items-center justify-center"
+                            >
+                                { (ideaForPaymentConfirmation && isProcessingExtendedViaMP === ideaForPaymentConfirmation.id) 
+                                    ? (<> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Procesando MP...</>)
+                                    : ( "Pagar con Mercado Pago" )
+                                }
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    if (ideaForPaymentConfirmation && ideaForPaymentConfirmation.id && ideaForPaymentConfirmation._productType) {
+                                        setIsPreparingPayPalForExtended(ideaForPaymentConfirmation.id);
+                                        console.log(`[MyIdeasModal] Preparando PayPal para ${ideaForPaymentConfirmation._productType}, idea ID: ${ideaForPaymentConfirmation.id}`);
+                                        setTimeout(() => {
+                                            setShowPayPalButtonsForExtended(true); 
+                                        }, 500);
+                                    }
+                                }}
+                                disabled={
+                                    (ideaForPaymentConfirmation && isProcessingExtendedViaMP === ideaForPaymentConfirmation.id) || 
+                                    (ideaForPaymentConfirmation && isPreparingPayPalForExtended === ideaForPaymentConfirmation.id)
+                                }
+                                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors disabled:opacity-60 flex items-center justify-center"
+                            >
+                                { (ideaForPaymentConfirmation && isPreparingPayPalForExtended === ideaForPaymentConfirmation.id && !showPayPalButtonsForExtended) 
+                                    ? (<> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Preparando PayPal...</>)
+                                    : ( "Pagar con PayPal" )
+                                }
+                            </button>
+                        </>
+                    )}
+
+                    {showPayPalButtonsForExtended && ideaForPaymentConfirmation && ideaForPaymentConfirmation.id && ideaForPaymentConfirmation._productType && (
+                        <PayPalButtonWrapper
+                            key={`paypal-myideas-${ideaForPaymentConfirmation.id}-${ideaForPaymentConfirmation._productType}`} 
+                            ideaName={ideaForPaymentConfirmation.idea_name}
+                            ideaId={ideaForPaymentConfirmation.id}
+                            priceUSD={
+                                ideaForPaymentConfirmation._productType === 'extended_viability' 
+                                    ? EXTENDED_VIABILITY_PRICE_USD_PAYPAL 
+                                    : DETAILED_REPORT_PRICE_USD_PAYPAL
+                            }
+                            sessionAccessToken={session?.access_token}
+                            apiBaseUrl={API_BASE_URL}
+                            onPaymentSuccess={(paidIdeaId: number) => { // <--- CAMBIO AQUÍ: Solo un argumento
+                                const currentProductType = ideaForPaymentConfirmation?._productType; // Obtener de la idea en el modal
+
+                                if (!currentProductType) {
+                                    console.error("[MyIdeasModal-PayPalSuccess] No se pudo determinar el productType para la idea ID:", paidIdeaId);
+                                    toast.error("Error al procesar el tipo de producto después del pago.");
+                                    closePaymentConfirmModal();
+                                    setIsPreparingPayPalForExtended(null);
+                                    return;
+                                }
+                                
+                                toast.success(`¡${currentProductType === 'extended_viability' ? 'Análisis Extendido' : 'Informe Detallado'} adquirido con PayPal para idea ID ${paidIdeaId}!`);
+                                
+                                setMyIdeas(prevIdeas => prevIdeas.map(i => {
+                                    if (i.id === paidIdeaId) {
+                                        const updatedIdea = currentProductType === 'extended_viability'
+                                            ? { ...i, is_extended_viability_purchased: true, payment_provider: 'paypal' as const }
+                                            : { ...i, is_detailed_report_purchased: true, payment_provider: 'paypal' as const };
+                                        console.log("[MyIdeasModal-PayPalSuccess] Actualizando idea en myIdeas:", updatedIdea);
+                                        return updatedIdea;
+                                    }
+                                    return i;
+                                }));
+
+                                if(selectedIdea?.id === paidIdeaId) {
+                                    setSelectedIdea(prev => {
+                                        if (!prev) return null;
+                                        return currentProductType === 'extended_viability'
+                                            ? {...prev, is_extended_viability_purchased: true, payment_provider: 'paypal'}
+                                            : {...prev, is_detailed_report_purchased: true, payment_provider: 'paypal'};
+                                    });
+                                }
+                                
+                                try {
+                                    const signalKey = 'genesisAI_action_completed_v1'; 
+                                    const purchaseUpdateSignal = { 
+                                        actionCompletedForIdeaId: paidIdeaId.toString(),
+                                        is_detailed_report_purchased: currentProductType === 'detailed_report',
+                                        is_extended_viability_purchased: currentProductType === 'extended_viability',
+                                        payment_provider: 'paypal',
+                                        timestamp: Date.now() 
+                                    };
+                                    sessionStorage.setItem(signalKey, JSON.stringify(purchaseUpdateSignal));
+                                    console.log(`[MyIdeasModal-PayPalSuccess] Señal guardada en sessionStorage para idea ID ${paidIdeaId}`);
+                                } catch (e) { console.error("[MyIdeasModal-PayPalSuccess] Error guardando señal:", e); }
+
+                                closePaymentConfirmModal();
+                                setIsPreparingPayPalForExtended(null);
+
+                                if (currentProductType === 'extended_viability') {
+                                    // Considerar si se redirige o no
+                                } else {
+                                    router.push(`/idea/${paidIdeaId}/report`);
+                                }
+                            }}
+                            onPaymentError={(errorMessage, orderId) => {
+                                let finalMessage = `Error con PayPal: ${errorMessage}`;
+                                if (orderId) finalMessage += ` (Pedido ID: ${orderId})`;
+                                toast.error(finalMessage);
+                                setIsPreparingPayPalForExtended(null);
+                            }}
+                            onPaymentCancel={() => {
+                                toast.info("Has cancelado el pago con PayPal.");
+                                setIsPreparingPayPalForExtended(null);
+                                setShowPayPalButtonsForExtended(false);
+                            }}
+                            onProcessingEnd={() => {
+                                setIsPreparingPayPalForExtended(null);
+                                setShowPayPalButtonsForExtended(false); 
+                            }}
+                        />
+                    )}
+                    
+                    { (!showPayPalButtonsForExtended || (showPayPalButtonsForExtended && !(isPreparingPayPalForExtended === ideaForPaymentConfirmation?.id)) ) && (
+                        <button
+                            onClick={closePaymentConfirmModal}
+                            disabled={isPreparingPayPalForExtended === ideaForPaymentConfirmation?.id || isProcessingExtendedViaMP === ideaForPaymentConfirmation?.id}
+                            className="w-full sm:w-auto mt-2 px-6 py-2.5 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-lg shadow-md transition-colors disabled:opacity-70"
+                        >
+                            Cancelar
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    )}
 
       {isDeleteModalOpen && ideaToDelete && ( <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60]" onClick={closeDeleteModal} > <div className="bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-md animate-fade-in-up" onClick={(e) => e.stopPropagation()}> <h2 className="text-xl font-semibold text-red-400 mb-4">Confirmar Eliminación</h2> <p className="text-gray-300 mb-6"> ¿Seguro quieres eliminar la idea <strong className="text-purple-300">"{ideaToDelete.idea_name}"</strong>? Esta acción no se puede deshacer. </p> <div className="flex justify-end space-x-3"> <button onClick={closeDeleteModal} disabled={isDeleting} className="px-5 py-2 bg-gray-600 hover:bg-gray-500 text-white font-medium rounded-md shadow-md disabled:opacity-50" > Cancelar </button> <button onClick={confirmDeleteIdea} disabled={isDeleting} className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md shadow-md disabled:opacity-50 flex items-center justify-center" > {isDeleting ? ( <> <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span> Eliminando...</> ) : ( "Eliminar Idea" )} </button> </div> </div> </div> )}
     </div>

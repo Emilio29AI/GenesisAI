@@ -24,7 +24,7 @@ export const metadata = {
 };
 
 // Reemplaza esto con tu Client ID de PayPal Sandbox
-const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "YOUR_SANDBOX_CLIENT_ID";
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 // Es MUY RECOMENDABLE usar una variable de entorno para esto: NEXT_PUBLIC_PAYPAL_CLIENT_ID
 // Y añadirla a tu archivo .env.local (ej: NEXT_PUBLIC_PAYPAL_CLIENT_ID=AbCdEfGhIjKlMnOpQrStUvWxYz...)
 

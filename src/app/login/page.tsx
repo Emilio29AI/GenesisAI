@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import { FaGoogle } from 'react-icons/fa';
 import { User as SupabaseUser } from '@supabase/supabase-js'; // Importar User de supabase-js
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface EmailLoginApiResponse {
     access_token: string;
@@ -30,7 +30,7 @@ function LoginPageContent() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectPath = nextSearchParams.get('redirect') || '/my-ideas';
+      const redirectPath = nextSearchParams.get('redirect') || '/generate-idea';
       router.replace(redirectPath);
     }
   }, [isAuthenticated, router, nextSearchParams]);
@@ -90,22 +90,50 @@ function LoginPageContent() {
     }
     setIsGoogleLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback`;
+      // 1. Obtener los parámetros originales de la URL de /login
+      //    (ej. si la URL actual es /login?redirect=/generate-idea&action=pendingGeneration)
+      const originalRedirectPath = nextSearchParams.get('redirect'); 
+      const originalAction = nextSearchParams.get('action');       
+
+      console.log(`[Login Page] Google Login - originalRedirectPath: ${originalRedirectPath}, originalAction: ${originalAction}`);
+
+      // 2. Construir la URL para el callback de Supabase, incluyendo los parámetros originales
+      //    La base es tu URL de callback de Supabase Auth.
+      let supabaseCallbackRedirectTo = `${window.location.origin}/auth/callback`; 
       
+      const callbackExtraParams = new URLSearchParams();
+      // Solo añadir 'next' si originalRedirectPath tiene un valor.
+      // Si no, /auth/callback usará su propio fallback (ej. /my-ideas o /).
+      if (originalRedirectPath) { 
+        callbackExtraParams.append('next', originalRedirectPath); 
+      }
+      if (originalAction) {
+        callbackExtraParams.append('original_action', originalAction);
+      }
+
+      if (callbackExtraParams.size > 0) {
+        supabaseCallbackRedirectTo += `?${callbackExtraParams.toString()}`;
+      }
+      
+      console.log("[Login Page] Google Login - redirectTo para Supabase OAuth será:", supabaseCallbackRedirectTo);
+
+      // 3. Iniciar el flujo OAuth con la redirectTo modificada
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
+          redirectTo: supabaseCallbackRedirectTo, 
         },
       });
 
       if (error) {
-        throw error;
+        throw error; 
       }
+      // Si no hay error, el navegador ya está redirigiendo a Google.
+      // setIsLoading(false) no se alcanzará aquí si la redirección es exitosa.
     } catch (err: any) {
       toast.error(err.message || 'Error al intentar iniciar sesión con Google.');
       console.error("Google login error:", err);
-      setIsGoogleLoading(false);
+      setIsGoogleLoading(false); 
     }
   };
 

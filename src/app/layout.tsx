@@ -3,13 +3,13 @@
 import React from 'react';
 import Script from 'next/script';
 // ----- TUS OTRAS IMPORTACIONES (descomenta las que uses) -----
-// import { Inter } from 'next/font/google';
+import { Inter } from 'next/font/google';
 // import AuthProvider from '@/context/AuthContext';
-// import Navbar from '@/components/Navbar';
+import Navbar from '@/components/Navbar';
 // import Footer from '@/components/Footer';
-// import { ToastContainer } from 'react-toastify';
-// import './globals.css';
-// import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
+import './globals.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 // const inter = Inter({ subsets: ['latin'] });
 

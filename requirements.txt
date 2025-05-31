@@ -40,6 +40,7 @@ multidict==6.4.3
 openai==1.79.0
 orjson==3.10.18
 packaging==24.2
+paypalrestsdk==1.13.3
 pluggy==1.5.0
 postgrest==1.0.1
 propcache==0.3.1

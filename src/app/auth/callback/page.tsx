@@ -2,59 +2,81 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext'; // Asumiendo que tu contexto maneja onAuthStateChange
+import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'; // Importar useNextSearchParams
+import { useAuth } from '@/context/AuthContext'; 
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const { isLoading, isAuthenticated, session } = useAuth(); // Obtén el estado de autenticación del contexto
+  const searchParams = useNextSearchParams(); // Usar para leer query params en Client Components
+  const { isLoading, isAuthenticated, session, supabase } = useAuth(); // Añadir supabase de useAuth
+
+  console.log("[AuthCallback - page.tsx] Renderizando. isLoading:", isLoading, "isAuthenticated:", isAuthenticated);
 
   useEffect(() => {
-    // El listener onAuthStateChange en AuthContext debería manejar la sesión
-    // y el estado isAuthenticated. Aquí solo esperamos a que se resuelva.
-    
-    // Si después de un tiempo isLoading sigue true y no hay sesión, podría haber un problema.
-    // Si isAuthenticated se vuelve true, AuthContext debería redirigir o 
-    // el componente que renderiza esta página condicionalmente debería cambiar.
+    console.log("[AuthCallback - page.tsx] useEffect [isLoading, session] disparado. isLoading:", isLoading, "isAuthenticated:", isAuthenticated, "Session:", session ? "Presente" : "Ausente");
 
-    // Redirección básica: si después de que el estado de carga del contexto se resuelva
-    // el usuario está autenticado, llévalo a 'my-ideas'.
-    // Si no, llévalo a 'login'.
-    // Tu AuthContext podría tener una lógica de redirección más sofisticada.
+    // Paso 1: Intercambiar el código por una sesión si aún no se ha hecho
+    // Esto usualmente lo maneja el onAuthStateChange de Supabase automáticamente
+    // cuando la URL tiene el code y otros params de OAuth, pero podemos ser explícitos
+    // o simplemente esperar a que AuthContext lo resuelva.
+    // Por ahora, confiamos en que AuthContext (via onAuthStateChange) establece la sesión.
 
-    if (!isLoading) { // Solo actuar cuando el estado de carga del contexto se haya resuelto
+    if (!isLoading) { 
+      console.log("[AuthCallback - page.tsx] AuthContext ya no está cargando.");
       if (isAuthenticated && session) {
-        // Puedes verificar si hay un redirectPath en localStorage o sessionStorage
-        // que se haya guardado antes de iniciar el flujo OAuth.
-        const intendedRedirect = localStorage.getItem('supabase_intended_redirect');
-        localStorage.removeItem('supabase_intended_redirect'); // Limpiar después de usar
-        
-        const action = localStorage.getItem('supabase_intended_action');
-        localStorage.removeItem('supabase_intended_action');
+        console.log("[AuthCallback - page.tsx] Usuario AUTENTICADO. Procediendo con la redirección.");
 
-        if (intendedRedirect) {
-            if (action === 'acquireFullReport') {
-                router.replace(`${intendedRedirect}?action=acquireFullReport`);
-            } else {
-                router.replace(intendedRedirect);
-            }
-        } else {
-            router.replace('/my-ideas');
+        // Leer los parámetros 'next' y 'original_action' que DEBERÍAN haber llegado aquí
+        // desde la redirección de Google (si los configuramos en login/page.tsx)
+        const nextPath = searchParams.get('next');
+        const originalAction = searchParams.get('original_action');
+        console.log(`[AuthCallback - page.tsx] Query params leídos: nextPath='${nextPath}', originalAction='${originalAction}'`);
+
+        let finalRedirectTarget = nextPath || '/my-ideas'; // Fallback si 'next' no está
+        const finalRedirectParams = new URLSearchParams();
+        finalRedirectParams.append('afterLogin', 'true');
+
+        if (originalAction) {
+          finalRedirectParams.append('action', originalAction);
         }
         
+        const finalRedirectUrl = new URL(finalRedirectTarget, window.location.origin);
+        finalRedirectUrl.search = finalRedirectParams.toString();
+
+        console.log("[AuthCallback - page.tsx] Redirigiendo a:", finalRedirectUrl.toString());
+        router.replace(finalRedirectUrl.toString());
+        
       } else {
-        // Si no está autenticado después del callback, podría ser un error o el usuario canceló.
-        // Enviar a login como fallback.
-        console.warn("Auth callback: No se pudo autenticar al usuario, redirigiendo a login.");
-        router.replace('/login');
+        console.warn("[AuthCallback - page.tsx] No autenticado después de la carga del contexto, o no hay sesión. Redirigiendo a login con error.");
+        router.replace('/login?error=auth_callback_failed_or_no_session');
       }
+    } else {
+        console.log("[AuthCallback - page.tsx] AuthContext todavía está cargando (isLoading es true). Esperando...");
     }
-  }, [isLoading, isAuthenticated, session, router]);
+  //}, [isLoading, isAuthenticated, session, router, searchParams]); // Añadir searchParams a las dependencias
+  // Para evitar bucles, y dado que searchParams no debería cambiar mientras esta página está activa,
+  // podemos intentar ejecutar esto una vez que isLoading es false.
+  // Sin embargo, si isAuthenticated o session cambian DESPUÉS de que isLoading es false, queremos reaccionar.
+  // Una dependencia más segura podría ser solo [isLoading, isAuthenticated, session, router, searchParams]
+  // y asegurar que la lógica interna sea idempotente o maneje bien los re-disparos.
+  // Vamos a probar con un array de dependencias más simple para ver si AuthContext actualiza el estado
+  // y este efecto reacciona una vez.
+  }, [isLoading, isAuthenticated, session, router, searchParams]);
+  // Si esto causa bucles, podríamos necesitar un ref para 'hasRedirected'
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-      <p className="text-xl">Procesando autenticación...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
+      <p className="text-xl mb-4">Procesando autenticación...</p>
+      <p className="text-sm text-gray-400">Serás redirigido en breve.</p>
       {/* Puedes añadir un spinner aquí */}
+      {/* DEBUG INFO:
+      <div className="mt-4 text-xs text-gray-500">
+        <p>isLoading: {String(isLoading)}</p>
+        <p>isAuthenticated: {String(isAuthenticated)}</p>
+        <p>Session: {session ? 'Presente' : 'Ausente'}</p>
+        <p>URL Query Params: {searchParams.toString()}</p>
+      </div>
+      */}
     </div>
   );
 }

@@ -85,17 +85,36 @@ function LoginPageContent() {
   const handleGoogleLogin = async () => {
     if (!supabase) {
       toast.error('Error de configuración: cliente Supabase no disponible.');
-      console.error("Supabase client is not available in AuthContext for Google login.");
       return;
     }
     setIsGoogleLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback`;
-      
+      const originalRedirectPath = nextSearchParams.get('redirect');
+      const originalAction = nextSearchParams.get('action');
+
+      // --- GUARDAR EN SESSIONSTORAGE ANTES DE REDIRIGIR A GOOGLE ---
+      if (originalRedirectPath) {
+        sessionStorage.setItem('oauth_intended_redirect_path', originalRedirectPath);
+        console.log(`[Login Page] Google Login - Guardado en sessionStorage 'oauth_intended_redirect_path': ${originalRedirectPath}`);
+      }
+      if (originalAction) {
+        sessionStorage.setItem('oauth_intended_action', originalAction);
+        console.log(`[Login Page] Google Login - Guardado en sessionStorage 'oauth_intended_action': ${originalAction}`);
+      }
+      // También podrías guardar PENDING_GENERATION_FORM_DATA_KEY aquí si es necesario,
+      // aunque tu handleSubmit en generate-idea ya lo hace si no está autenticado.
+
+      // La redirectTo para Supabase puede ser simple ahora
+      const supabaseCallbackRedirectTo = `${window.location.origin}/auth/callback`;
+      console.log("[Login Page] Google Login - redirectTo para Supabase OAuth (simple):", supabaseCallbackRedirectTo);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
+          redirectTo: supabaseCallbackRedirectTo,
+          // Algunas versiones del SDK de Supabase permiten 'queryParams' aquí para pasarlos de forma segura,
+          // pero localStorage/sessionStorage es más universal si eso no funciona.
+          // queryParams: { next: originalRedirectPath, original_action: originalAction }
         },
       });
 

@@ -11,7 +11,7 @@ import { ToastContainer } from 'react-toastify';
 import './globals.css';
 import 'react-toastify/dist/ReactToastify.css';
 
-// const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'] });
 
 // Obtener el Client ID de las variables de entorno
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;

@@ -1,7 +1,8 @@
 // src/app/layout.tsx
 
 import React from 'react';
-import Script from 'next/script';
+// Script ya no se importa directamente aquí si solo se usa en PayPalScriptLoader
+import './globals.css';
 // ----- TUS OTRAS IMPORTACIONES (descomenta las que uses) -----
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext'; 
@@ -9,12 +10,16 @@ import Navbar from '@/components/Navbar';
 // import Footer from '@/components/Footer'; 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './globals.css';
+
 
 // --- NUEVA IMPORTACIÓN ---
 import PayPalScriptLoader from '@/components/PayPalScriptLoader'; // Ajusta la ruta si es necesario
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'], // Especifica los subconjuntos de caracteres que necesitas
+  display: 'swap',    // Mejora el rendimiento de carga percibido
+  variable: '--font-inter', // Define una variable CSS para Inter
+});
 
 // PAYPAL_CLIENT_ID ya no se necesita aquí directamente, se usa en PayPalScriptLoader
 
@@ -27,13 +32,13 @@ export default function RootLayout({
   console.log("RootLayout RENDERIZANDO - Usando PayPalScriptLoader - Timestamp:", new Date().toISOString());
 
   return (
-    <html lang="es">
-      <body className={inter.className}> 
+    <html lang="es" className={`${inter.variable} font-sans`}>
+      <body className="bg-gray-900 text-gray-100"> 
         <AuthProvider>
           <Navbar />
-          <main className="pt-16 min-h-screen"> 
+          <main className="min-h-screen"> 
             {children}
-          </main>
+          </main >
           <ToastContainer
             position="bottom-right"
             autoClose={5000}

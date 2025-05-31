@@ -20,7 +20,8 @@ const SaveIcon = () => ( <IconWrapper> <svg xmlns="http://www.w3.org/2000/svg" f
 const CheckIcon = () => ( <IconWrapper> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /> </svg> </IconWrapper> );
 const PlusCircleIcon = () => ( <IconWrapper><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-full h-full"> <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /> </svg> </IconWrapper> );
 
-const ACTION_COMPLETED_SIGNAL_KEY = 'genesisAI_action_completed_v1'; 
+const ACTION_COMPLETED_SIGNAL_KEY = 'genesisAI_action_completed_v1';
+const PENDING_GENERATION_FORM_DATA_KEY = 'pendingGenerationFormData_v1';
 
 import {
   HeartIcon as HeartIconOutline,
@@ -260,44 +261,147 @@ function GenerateIdeaInteractiveContent() {
   }, []);
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const currentAccessToken = session?.access_token;
-    if (!isAuthenticated && !canGenerateAnonymously) { toast.error("Has alcanzado el máximo de generaciones gratuitas. Regístrate o inicia sesión para más."); return; }
+
+    // --- INICIO DE NUEVA LÓGICA DE AUTENTICACIÓN ---
+    if (!isAuthenticated) { // isAuthenticated viene de useAuth()
+        toast.info("Debes iniciar sesión o registrarte para generar ideas.");
+        try {
+            // Guardar el formData actual para restaurarlo después del login
+            sessionStorage.setItem(PENDING_GENERATION_FORM_DATA_KEY, JSON.stringify(formData));
+            console.log("[handleSubmit] formData guardado en PENDING_GENERATION_FORM_DATA_KEY para usuario no autenticado.");
+        } catch (e) {
+            console.error("Error guardando PENDING_GENERATION_FORM_DATA_KEY en sessionStorage:", e);
+        }
+        // Redirigir a login, indicando que hay una acción pendiente y a dónde volver.
+        // El 'action=pendingGeneration' es para que el useEffect post-login sepa qué hacer.
+        router.push(`/login?redirect=${pathname}&action=pendingGeneration&afterLogin=true`);
+        return; // Detener la ejecución de handleSubmit
+    }
+    // --- FIN DE NUEVA LÓGICA DE AUTENTICACIÓN ---
+
+    // Si llegamos aquí, el usuario ESTÁ autenticado.
+    const currentAccessToken = session?.access_token; // session viene de useAuth()
+
+    // Ya no necesitamos esta verificación porque la de arriba la cubre y es más estricta.
+    // if (!isAuthenticated && !canGenerateAnonymously) { toast.error("Has alcanzado el máximo de generaciones gratuitas. Regístrate o inicia sesión para más."); return; }
+    
     const ideaSeedValue = formData.idea_seed?.trim() || "";
     const problemToSolveValue = formData.problem_to_solve?.trim() || "";
-    if (ideaSeedValue === "" && problemToSolveValue === "") { toast.error("Por favor, completa al menos tu idea inicial (Paso 1.1) o el problema que buscas resolver (Paso 1.2)."); return; }
+    if (ideaSeedValue === "" && problemToSolveValue === "") { 
+        toast.error("Por favor, completa al menos tu idea inicial (Paso 1.1) o el problema que buscas resolver (Paso 1.2)."); 
+        return; 
+    }
+
     setIsLoading(true);
     setPageError(null);
     setSelectedIdea(null);
     setIsModalOpen(false);
     closeUnlockConfirmModal(); 
-    const currentFormDataForSubmit = { ...formData };
+    
+    const currentFormDataForSubmit = { ...formData }; // Usamos el formData actual
     const payloadForGenerate = buildUserProfileForAPI(currentFormDataForSubmit);
+    
     try {
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (isAuthenticated && currentAccessToken) { headers['Authorization'] = `Bearer ${currentAccessToken}`; }
-      const response = await fetch(`${API_BASE_URL}/api/v1/ideas/generate`, { method: 'POST', headers: headers, body: JSON.stringify(payloadForGenerate) });
-      const data = await response.json();
-      if (!response.ok) {
-        let errorDetail = `Error: ${response.status}`; let isLimitError = false;
-        if (data && data.detail) {
-          if (response.status === 429 || (typeof data.detail === 'string' && data.detail.toLowerCase().includes("límite de generación"))) { errorDetail = data.detail; isLimitError = true; if(isAuthenticated) contextFetchUserLimits();
-          } else if (Array.isArray(data.detail) && data.detail[0] && typeof data.detail[0] === 'object' && 'msg' in data.detail[0]) { errorDetail = data.detail.map((d: ApiErrorDetailItem) => `${d.loc.join('.')} - ${d.msg}`).join('; ');
-          } else if (typeof data.detail === 'string') { errorDetail = data.detail; }
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        // Como ya verificamos isAuthenticated arriba, podemos asumir que tenemos el token si es necesario
+        if (currentAccessToken) { // Este if es redundante si la lógica de arriba asegura autenticación, pero no hace daño
+            headers['Authorization'] = `Bearer ${currentAccessToken}`; 
+        } else {
+            // Esto no debería ocurrir si la lógica de arriba funciona bien.
+            // Podrías lanzar un error o un toast si por alguna razón no hay token aquí.
+            console.error("[handleSubmit] Usuario autenticado pero sin access token. Esto no debería pasar.");
+            toast.error("Error de sesión. Por favor, intenta recargar la página o vuelve a iniciar sesión.");
+            setIsLoading(false);
+            return;
         }
-        toast.error(errorDetail); if (!isLimitError) setPageError(errorDetail); setIsLoading(false); return;
-      }
-      const ideasFromApi = Array.isArray(data.generated_ideas) ? data.generated_ideas : [];
-      const ideasWithInitialState: GeneratedIdea[] = ideasFromApi.map((idea: any) => ({ ...idea, id: undefined, isSaved: false, is_detailed_report_purchased: false, is_extended_viability_purchased: false, detailed_report_content: null })); // Añadido is_extended_viability_purchased
-      setGeneratedIdeas(ideasWithInitialState);
-      if (!isAuthenticated) {
-        const newCount = anonymousGenerationsToday + 1; setAnonymousGenerationsToday(newCount); localStorage.setItem(ANONYMOUS_COUNT_STORAGE_KEY, newCount.toString()); const today = new Date().toISOString().split('T')[0]; localStorage.setItem(ANONYMOUS_DATE_STORAGE_KEY, today);
-        if (newCount >= ANONYMOUS_FREE_GENERATIONS_LIMIT) { setCanGenerateAnonymously(false); toast.info("Has utilizado tu última generación gratuita de hoy."); } else { toast.info(`Te quedan ${ANONYMOUS_FREE_GENERATIONS_LIMIT - newCount} generaciones gratuitas hoy.`); }
-      } else { contextFetchUserLimits(); }
-      if (ideasWithInitialState.length > 0) { try { sessionStorage.setItem(LAST_FORM_DATA_KEY, JSON.stringify(currentFormDataForSubmit)); } catch (e) { console.error("Error guardando LAST_FORM_DATA_KEY en sessionStorage:", e); } if (resultsContainerRef.current) { setTimeout(() => resultsContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }
-      } else { sessionStorage.removeItem(LAST_FORM_DATA_KEY); setGeneratedIdeas([]); toast.info("No se generaron ideas esta vez, intenta ajustar tus criterios."); }
-    } catch (err: any) { console.error("Error general en handleSubmit (catch):", err); const displayMessage = err.message || "Error al generar ideas. Intenta de nuevo."; toast.error(displayMessage); setPageError(displayMessage);
-    } finally { setIsLoading(false); }
-  };
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/generate`, { 
+            method: 'POST', 
+            headers: headers, 
+            body: JSON.stringify(payloadForGenerate) 
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            let errorDetail = `Error: ${response.status}`; 
+            let isLimitError = false;
+            if (data && data.detail) {
+                // La lógica de error de límite se mantiene, ya que se aplica a usuarios autenticados
+                if (response.status === 429 || (typeof data.detail === 'string' && data.detail.toLowerCase().includes("límite de generación"))) { 
+                    errorDetail = data.detail; 
+                    isLimitError = true; 
+                    contextFetchUserLimits(); // contextFetchUserLimits viene de useAuth()
+                } else if (Array.isArray(data.detail) && data.detail[0] && typeof data.detail[0] === 'object' && 'msg' in data.detail[0]) { 
+                    errorDetail = data.detail.map((d: ApiErrorDetailItem) => `${d.loc.join('.')} - ${d.msg}`).join('; ');
+                } else if (typeof data.detail === 'string') { 
+                    errorDetail = data.detail; 
+                }
+            }
+            toast.error(errorDetail); 
+            if (!isLimitError) setPageError(errorDetail); 
+            setIsLoading(false); 
+            return;
+        }
+
+        const ideasFromApi = Array.isArray(data.generated_ideas) ? data.generated_ideas : [];
+        const ideasWithInitialState: GeneratedIdea[] = ideasFromApi.map((idea: any) => ({ 
+            ...idea, 
+            id: undefined, // Las ideas nuevas no tienen ID de DB hasta que se guardan
+            isSaved: false, 
+            is_detailed_report_purchased: false, 
+            is_extended_viability_purchased: false, 
+            detailed_report_content: null 
+        }));
+        
+        setGeneratedIdeas(ideasWithInitialState);
+
+        // --- ELIMINAR ESTE BLOQUE if (!isAuthenticated) ---
+        /* 
+        if (!isAuthenticated) {
+            const newCount = anonymousGenerationsToday + 1; 
+            setAnonymousGenerationsToday(newCount); 
+            localStorage.setItem(ANONYMOUS_COUNT_STORAGE_KEY, newCount.toString()); 
+            const today = new Date().toISOString().split('T')[0]; 
+            localStorage.setItem(ANONYMOUS_DATE_STORAGE_KEY, today);
+            if (newCount >= ANONYMOUS_FREE_GENERATIONS_LIMIT) { 
+                setCanGenerateAnonymously(false); 
+                toast.info("Has utilizado tu última generación gratuita de hoy."); 
+            } else { 
+                toast.info(`Te quedan ${ANONYMOUS_FREE_GENERATIONS_LIMIT - newCount} generaciones gratuitas hoy.`); 
+            }
+        } else { 
+            contextFetchUserLimits(); 
+        }
+        */
+        // --- FIN DE BLOQUE ELIMINADO ---
+
+        // Ahora, como siempre estamos autenticados aquí, solo llamamos a contextFetchUserLimits
+        contextFetchUserLimits();
+
+        if (ideasWithInitialState.length > 0) { 
+            try { 
+                sessionStorage.setItem(LAST_FORM_DATA_KEY, JSON.stringify(currentFormDataForSubmit)); 
+                console.log("[handleSubmit] LAST_FORM_DATA_KEY guardado en sessionStorage.");
+            } catch (e) { 
+                console.error("Error guardando LAST_FORM_DATA_KEY en sessionStorage:", e); 
+            } 
+            if (resultsContainerRef.current) { 
+                setTimeout(() => resultsContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); 
+            }
+        } else { 
+            sessionStorage.removeItem(LAST_FORM_DATA_KEY); 
+            setGeneratedIdeas([]); 
+            toast.info("No se generaron ideas esta vez, intenta ajustar tus criterios."); 
+        }
+    } catch (err: any) { 
+        console.error("Error general en handleSubmit (catch):", err); 
+        const displayMessage = err.message || "Error al generar ideas. Intenta de nuevo."; 
+        toast.error(displayMessage); 
+        setPageError(displayMessage);
+    } finally { 
+        setIsLoading(false); 
+    }
+};
 
   const handleSaveIdea = useCallback(async (ideaToSave: GeneratedIdea | null, triggeredFromUnlock: boolean = false): Promise<GeneratedIdea | null> => {
     if (!ideaToSave) return null;
@@ -648,57 +752,173 @@ useEffect(() => {
   useEffect(() => {
     const processPostLoginActions = async () => {
         const afterLogin = pageSearchParams.get('afterLogin') === 'true';
-        const action = pageSearchParams.get('action');
+        const action = pageSearchParams.get('action'); // Tu variable se llama 'action'
+        
         if (afterLogin && !authIsLoading && isAuthenticated && session?.access_token) {
+            console.log(`[PostLoginEffect] afterLogin=true, action=${action}`); // Log para depurar
+
             let ideasParaProcesar = [...generatedIdeas];
-            // ... (lógica de carga de ideas desde session si es necesario) ...
             if(ideasParaProcesar.length === 0){
                 const tempIdeasString = sessionStorage.getItem(SESSION_STORAGE_KEY);
                 if (tempIdeasString) {
-                    try { ideasParaProcesar = JSON.parse(tempIdeasString); } 
-                    catch (e) { console.error("Error parsing ideasFromSession (post-login effect):", e); ideasParaProcesar = []; }
+                    try { 
+                        ideasParaProcesar = JSON.parse(tempIdeasString); 
+                        console.log("[PostLoginEffect] Ideas restauradas desde sessionStorage para procesar acción pendiente:", ideasParaProcesar.length);
+                    } 
+                    catch (e) { 
+                        console.error("Error parsing ideasFromSession (post-login effect):", e); 
+                        ideasParaProcesar = []; 
+                    }
                 }
             }
 
             const pendingSaveIdeaName = sessionStorage.getItem('pendingSaveIdeaName');
-            const pendingUnlockIdeaName = sessionStorage.getItem('pendingUnlockIdeaName'); // Para el informe detallado
-            const pendingActionRaw = sessionStorage.getItem('pendingAction'); // Para el módulo extendido
+            const pendingUnlockIdeaName = sessionStorage.getItem('pendingUnlockIdeaName');
+            const pendingActionRaw = sessionStorage.getItem('pendingAction');
 
             let ideaToProcess: GeneratedIdea | undefined;
+            let actionWasHandled = false; // Para controlar si se debe hacer el router.replace
 
             if (action === 'savePending' && pendingSaveIdeaName) {
+                actionWasHandled = true;
                 ideaToProcess = ideasParaProcesar.find(i => i.idea_name === pendingSaveIdeaName && !i.id);
-                if (ideaToProcess) await handleSaveIdea(ideaToProcess, false); 
+                if (ideaToProcess) {
+                    console.log("[PostLoginEffect] Procesando 'savePending' para:", ideaToProcess.idea_name);
+                    await handleSaveIdea(ideaToProcess, false); 
+                } else {
+                     console.warn("[PostLoginEffect] 'savePending': No se encontró la idea o ya tiene ID:", pendingSaveIdeaName);
+                }
                 sessionStorage.removeItem('pendingSaveIdeaName');
-            } else if (action === 'unlockPending' && pendingUnlockIdeaName) { // Flujo para informe detallado
+                sessionStorage.removeItem(PENDING_FORM_DATA_KEY); // Limpiar form data general
+            } else if (action === 'unlockPending' && pendingUnlockIdeaName) {
+                actionWasHandled = true;
                 ideaToProcess = ideasParaProcesar.find(i => i.idea_name === pendingUnlockIdeaName);
-                if (ideaToProcess) openUnlockConfirmModal(ideaToProcess, 'detailed_report');
+                if (ideaToProcess) {
+                    console.log("[PostLoginEffect] Procesando 'unlockPending' para:", ideaToProcess.idea_name);
+                    openUnlockConfirmModal(ideaToProcess, 'detailed_report');
+                } else {
+                    console.warn("[PostLoginEffect] 'unlockPending': No se encontró la idea:", pendingUnlockIdeaName);
+                }
                 sessionStorage.removeItem('pendingUnlockIdeaName');
-            } else if (action === 'pendingExtendedModule' && pendingActionRaw) { // Flujo para módulo extendido
+                sessionStorage.removeItem(PENDING_FORM_DATA_KEY); // Limpiar form data general
+            } else if (action === 'pendingExtendedModule' && pendingActionRaw) {
+                actionWasHandled = true;
                 try {
                     const pendingActionData = JSON.parse(pendingActionRaw);
                     if (pendingActionData.type === 'acquireExtendedModule' && pendingActionData.ideaName) {
                         ideaToProcess = ideasParaProcesar.find(i => i.idea_name === pendingActionData.ideaName);
-                        if (ideaToProcess) openUnlockConfirmModal(ideaToProcess, 'extended_viability');
+                        if (ideaToProcess) {
+                            console.log("[PostLoginEffect] Procesando 'pendingExtendedModule' para:", ideaToProcess.idea_name);
+                            openUnlockConfirmModal(ideaToProcess, 'extended_viability');
+                        } else {
+                            console.warn("[PostLoginEffect] 'pendingExtendedModule': No se encontró la idea:", pendingActionData.ideaName);
+                        }
                     }
                 } catch (e) { console.error("Error parseando pendingAction:", e); }
                 sessionStorage.removeItem('pendingAction');
+                sessionStorage.removeItem(PENDING_FORM_DATA_KEY); // Limpiar form data general
+            
+            // --- INICIO: NUEVA LÓGICA PARA 'pendingGeneration' ---
+            } else if (action === 'pendingGeneration') {
+                actionWasHandled = true;
+                console.log("[PostLoginEffect] Detectada acción 'pendingGeneration'.");
+                const pendingFormDataString = sessionStorage.getItem(PENDING_GENERATION_FORM_DATA_KEY);
+                if (pendingFormDataString) {
+                    try {
+                        const pendingFormData: FormData = JSON.parse(pendingFormDataString); // Usa tu interfaz FormData
+                        console.log("[PostLoginEffect] Restaurando formData desde PENDING_GENERATION_FORM_DATA_KEY:", pendingFormData);
+                        setFormData(pendingFormData); // Actualizar el estado del formulario
+                        toast.info("Hemos restaurado los datos de tu formulario. ¡Ya puedes generar tus ideas!");
+                        sessionStorage.removeItem(PENDING_GENERATION_FORM_DATA_KEY); // Limpiar después de restaurar
+                        console.log("[PostLoginEffect] PENDING_GENERATION_FORM_DATA_KEY eliminado.");
+                    } catch (e) {
+                        console.error("[PostLoginEffect] Error parseando PENDING_GENERATION_FORM_DATA_KEY:", e);
+                        sessionStorage.removeItem(PENDING_GENERATION_FORM_DATA_KEY); // Limpiar si está corrupto
+                    }
+                } else {
+                    console.log("[PostLoginEffect] 'pendingGeneration' detectado pero no se encontró PENDING_GENERATION_FORM_DATA_KEY.");
+                }
+            // --- FIN: NUEVA LÓGICA PARA 'pendingGeneration' ---
             }
             
-            // Limpieza general
-            if (action === 'savePending' || action === 'unlockPending' || action === 'pendingExtendedModule') {
-                 sessionStorage.removeItem(PENDING_FORM_DATA_KEY); // Limpiar siempre el form data pendiente
+            // Limpieza general de query params si alguna acción fue manejada
+            if (actionWasHandled || action) { // Si action tenía un valor, aunque no lo hayamos manejado explícitamente, limpiamos la URL
+                // Limpiar query params 'action' y 'afterLogin' de la URL
+                const newSearchParams = new URLSearchParams(pageSearchParams.toString());
+                newSearchParams.delete('action');
+                newSearchParams.delete('afterLogin');
+                const newPathQuery = `${pathname}${newSearchParams.size > 0 ? `?${newSearchParams.toString()}` : ''}`;
+                router.replace(newPathQuery, { scroll: false });
+                console.log("[PostLoginEffect] Query params 'action' y 'afterLogin' eliminados de la URL si estaban presentes.");
             }
-            // Limpiar ideas temporales si no se está procesando un unlock que las necesite en el modal
-            if (!( (action === 'unlockPending' && pendingUnlockIdeaName && ideaToProcess) || 
-                   (action === 'pendingExtendedModule' && pendingActionRaw && ideaToProcess) )) {
+
+            // Tu lógica original de limpiar ideas temporales (SESSION_STORAGE_KEY)
+            // Solo la ejecutamos si la acción NO fue una que necesitara las ideas para un modal
+            // y si la acción pendiente fue realmente procesada (ideaToProcess no es undefined).
+            // Para 'pendingGeneration', no se usa 'ideaToProcess', así que esta condición está bien.
+            if (actionWasHandled && !( 
+                   (action === 'unlockPending' && pendingUnlockIdeaName && ideaToProcess) || 
+                   (action === 'pendingExtendedModule' && pendingActionRaw && ideaToProcess) 
+                )) {
+                 console.log("[PostLoginEffect] Limpiando SESSION_STORAGE_KEY ('tempGeneratedIdeas_v3') porque la acción no requiere ideas en modal o 'ideaToProcess' es undefined.");
                  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } else if (actionWasHandled) {
+                console.log("[PostLoginEffect] NO se limpia SESSION_STORAGE_KEY porque la acción podría necesitar ideas en modal y 'ideaToProcess' está definido.");
             }
-            router.replace(pathname, { scroll: false }); 
         }
     };
     processPostLoginActions();
-  }, [pageSearchParams, authIsLoading, isAuthenticated, session, router, pathname, handleSaveIdea, generatedIdeas, openUnlockConfirmModal, handleMercadoPagoCheckout]); // Añadido handleMercadoPagoCheckout
+  }, [
+      pageSearchParams, 
+      authIsLoading, 
+      isAuthenticated, 
+      session, 
+      router, 
+      pathname, 
+      handleSaveIdea, 
+      generatedIdeas, 
+      openUnlockConfirmModal, 
+      handleMercadoPagoCheckout, // Estaba en tus dependencias originales
+      // --- NUEVAS DEPENDENCIAS ---
+      formData, // Leído implícitamente por buildUserProfileForAPI dentro de handleSaveIdea, y para setFormData.
+      setFormData, // Porque lo llamamos directamente.
+      buildUserProfileForAPI // Si handleSaveIdea lo usa y está definido en el scope del componente.
+      // --- FIN NUEVAS DEPENDENCIAS ---
+    ]);
+
+useEffect(() => {
+    // Este efecto es SOLO para restaurar el formData si se guardó previamente.
+    // Se ejecuta al cargar/navegar a esta página.
+    console.log(`[FormRestoreEffectSimple] Ejecutándose. Pathname: ${pathname}.`);
+    
+    const pendingFormDataString = sessionStorage.getItem(PENDING_GENERATION_FORM_DATA_KEY);
+    
+    if (pendingFormDataString) {
+        console.log("[FormRestoreEffectSimple] PENDING_GENERATION_FORM_DATA_KEY encontrado:", pendingFormDataString.substring(0,100) + "...");
+        try {
+            const pendingFormData: FormData = JSON.parse(pendingFormDataString); // FormData es tu interfaz
+            
+            console.log("[FormRestoreEffectSimple] Restaurando formData desde PENDING_GENERATION_FORM_DATA_KEY:", pendingFormData);
+            setFormData(pendingFormData); // Actualiza el estado del formulario
+            toast.info("Hemos restaurado los datos de tu formulario anterior.");
+            
+            // Eliminar la clave después de la restauración para que no se aplique de nuevo
+            // en futuras visitas a menos que se vuelva a guardar.
+            sessionStorage.removeItem(PENDING_GENERATION_FORM_DATA_KEY);
+            console.log("[FormRestoreEffectSimple] PENDING_GENERATION_FORM_DATA_KEY eliminado de sessionStorage.");
+
+        } catch (e) {
+            console.error("[FormRestoreEffectSimple] Error parseando PENDING_GENERATION_FORM_DATA_KEY:", e);
+            sessionStorage.removeItem(PENDING_GENERATION_FORM_DATA_KEY); // Limpiar si está corrupto
+        }
+    } else {
+        console.log("[FormRestoreEffectSimple] No se encontró PENDING_GENERATION_FORM_DATA_KEY en sessionStorage.");
+    }
+// Dependencias: pathname para que se ejecute al navegar a esta ruta.
+// setFormData es una dependencia porque la usamos.
+// toast (si es una prop o viene de un hook que podría cambiar, aunque es raro para toast).
+// No necesitamos `formData` como dependencia aquí si la lógica es solo "si existe la clave, úsala y bórrala".
+}, [pathname, setFormData, toast]); // Asegúrate de que toast esté bien manejado como dependencia si es necesario.
 
   if (authIsLoading && !user && !session?.access_token && !pageSearchParams.get('afterLogin')) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white"><p>Verificando sesión...</p></div>;

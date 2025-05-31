@@ -18,7 +18,7 @@ const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
 // Función helper para renderizar el script de PayPal condicionalmente
 const renderPayPalScript = (): React.ReactNode => {
   const shouldLoad = PAYPAL_CLIENT_ID && 
-                     PAYPAL_CLIENT_ID !== "YOUR_SANDBOX_CLIENT_ID" && // Asegúrate que este placeholder sea correcto o ajústalo
+                     PAYPAL_CLIENT_ID !== "" && // Asegúrate que este placeholder sea correcto o ajústalo
                      PAYPAL_CLIENT_ID !== "";
 
   if (shouldLoad) {
@@ -44,7 +44,7 @@ const renderPayPalScript = (): React.ReactNode => {
   } else {
     if (process.env.NODE_ENV === 'development' && !PAYPAL_CLIENT_ID) {
       console.warn("RootLayout: NEXT_PUBLIC_PAYPAL_CLIENT_ID no está configurado. El SDK de PayPal no se cargará.");
-    } else if (process.env.NODE_ENV === 'development' && PAYPAL_CLIENT_ID === "YOUR_SANDBOX_CLIENT_ID") {
+    } else if (process.env.NODE_ENV === 'development' && PAYPAL_CLIENT_ID === "") {
       console.warn("RootLayout: PAYPAL_CLIENT_ID es el valor placeholder. El SDK de PayPal no se cargará.");
     }
     return null; // Explícitamente devolver null si no se carga

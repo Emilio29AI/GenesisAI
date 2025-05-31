@@ -1,8 +1,7 @@
 // src/app/layout.tsx
 
 import React from 'react';
-// Script ya no se importa directamente aquí si solo se usa en PayPalScriptLoader
-
+import Script from 'next/script';
 // ----- TUS OTRAS IMPORTACIONES (descomenta las que uses) -----
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext'; 

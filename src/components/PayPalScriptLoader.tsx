@@ -25,7 +25,7 @@ const PayPalScriptLoader = () => {
   return (
     <Script 
       id="paypal-sdk-script-component" // ID único
-      src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}¤cy=USD&intent=capture`}
+      src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture`}
       strategy="afterInteractive" // O "lazyOnload" si prefieres
       onLoad={() => {
         console.log("PayPalScriptLoader: PayPal SDK Script loaded successfully.");

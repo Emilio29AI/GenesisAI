@@ -1,87 +1,56 @@
 // src/app/layout.tsx
 
 import React from 'react';
-import Script from 'next/script';
+// Script ya no se importa directamente aquí si solo se usa en PayPalScriptLoader
+
 // ----- TUS OTRAS IMPORTACIONES (descomenta las que uses) -----
 import { Inter } from 'next/font/google';
-// import AuthProvider from '@/context/AuthContext';
+import { AuthProvider } from '@/context/AuthContext'; 
 import Navbar from '@/components/Navbar';
-// import Footer from '@/components/Footer';
+// import Footer from '@/components/Footer'; 
 import { ToastContainer } from 'react-toastify';
-import './globals.css';
 import 'react-toastify/dist/ReactToastify.css';
+import './globals.css';
+
+// --- NUEVA IMPORTACIÓN ---
+import PayPalScriptLoader from '@/components/PayPalScriptLoader'; // Ajusta la ruta si es necesario
 
 const inter = Inter({ subsets: ['latin'] });
 
-// Obtener el Client ID de las variables de entorno
-const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
-
-// Función helper para renderizar el script de PayPal condicionalmente
-const renderPayPalScript = (): React.ReactNode => {
-  // Condición simplificada: cargar si PAYPAL_CLIENT_ID tiene un valor válido (no undefined, no null, no cadena vacía)
-  const shouldLoad = PAYPAL_CLIENT_ID && PAYPAL_CLIENT_ID.trim() !== "";
-
-  if (shouldLoad) {
-    return (
-      <Script 
-        id="paypal-sdk-script-layout" // ID único para el script
-        src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}¤cy=USD&intent=capture`} // Corregido: ¤cy
-        strategy="afterInteractive" // Cargar después de que la página sea interactiva
-        onLoad={() => {
-          console.log("RootLayout: PayPal SDK Script loaded successfully.");
-          if (typeof window !== "undefined") {
-            (window as any).__paypal_sdk_loaded_global = true; // Bandera global
-          }
-        }}
-        onError={(e) => {
-          console.error("RootLayout: Error loading PayPal SDK Script:", e);
-          if (typeof window !== "undefined") {
-            (window as any).__paypal_sdk_loaded_global = false; // Indicar fallo
-          }
-        }}
-      />
-    );
-  } else {
-    // Loguear solo en desarrollo si el ID no está configurado o está vacío
-    if (process.env.NODE_ENV === 'development') {
-      if (!PAYPAL_CLIENT_ID || PAYPAL_CLIENT_ID.trim() === "") {
-        console.warn("RootLayout: NEXT_PUBLIC_PAYPAL_CLIENT_ID no está configurado o está vacío. El SDK de PayPal no se cargará.");
-      }
-    }
-    return null; // Explícitamente devolver null si no se carga
-  }
-};
+// PAYPAL_CLIENT_ID ya no se necesita aquí directamente, se usa en PayPalScriptLoader
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Log para verificar qué versión del layout se está usando en el build/runtime
-  console.log("RootLayout RENDERIZANDO - Version con helper 'renderPayPalScript' y corrección de currency - Timestamp:", new Date().toISOString());
+  // El console.log de versión puede quedarse o quitarse
+  console.log("RootLayout RENDERIZANDO - Usando PayPalScriptLoader - Timestamp:", new Date().toISOString());
 
   return (
     <html lang="es">
-      {/* ----- USA TU className DE FUENTE AQUÍ ----- */}
-      {/* <body className={inter.className}> */}
-      <body> 
-        {/* ----- DESCOMENTA TUS PROVIDERS Y COMPONENTES GLOBALES ----- */}
-        {/* <AuthProvider> */}
-          {/* <Navbar /> */}
-          <main className="pt-16 min-h-screen"> {/* Ajusta pt-16 si es necesario */}
+      <body className={inter.className}> 
+        <AuthProvider>
+          <Navbar />
+          <main className="pt-16 min-h-screen"> 
             {children}
           </main>
-          {/* <Footer /> */}
-          {/* <ToastContainer
+          <ToastContainer
             position="bottom-right"
             autoClose={5000}
-            // ... otras props ...
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
             theme="dark"
-          /> */}
-        {/* </AuthProvider> */}
+          />
+        </AuthProvider>
 
-        {/* Usar la función helper para renderizar el script */}
-        {renderPayPalScript()}
+        {/* Usar el nuevo componente cliente para cargar el script de PayPal */}
+        <PayPalScriptLoader />
       </body>
     </html>
   );

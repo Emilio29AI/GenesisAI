@@ -95,10 +95,8 @@ function LandingPageContent() {
     <>
       {/* ... (fondo y overlay sin cambios) ... */}
       <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-100 ease-out animate-pulse-opacity-slow"
-        style={{
+        className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10 animate-pulse-opacity-slow" style={{
           backgroundImage: "url('/background-hero-2.jpg')",
-          zIndex: 0,
           transform: `translate(${offsetX}px, ${offsetY}px) scale(1.05)`,
         }}
       ></div>

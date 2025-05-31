@@ -10,6 +10,7 @@ import Navbar from '@/components/Navbar';
 // import Footer from '@/components/Footer'; 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import type { Metadata } from 'next';
 
 
 // --- NUEVA IMPORTACIÓN ---
@@ -22,6 +23,23 @@ const inter = Inter({
 });
 
 // PAYPAL_CLIENT_ID ya no se necesita aquí directamente, se usa en PayPalScriptLoader
+
+export const metadata: Metadata = {
+  title: 'Génesis AI - Tu Co-Fundador para Ideas de Negocio Innovadoras', // Título principal de tu aplicación
+  description: 'Utiliza Inteligencia Artificial para descubrir y desarrollar ideas de negocio. Comienza tu emprendimiento con Génesis AI.', // Descripción principal
+  // Opcional: Puedes añadir más metadatos aquí
+  // openGraph: {
+  //   title: 'Génesis AI - Generador de Ideas de Negocio Innovadoras',
+  //   description: 'Descubre ideas de negocio con IA.',
+  //   images: ['/tu-imagen-og.png'], // URL absoluta o relativa a /public
+  // },
+  // twitter: {
+  //   card: 'summary_large_image',
+  //   title: 'Génesis AI - Generador de Ideas de Negocio Innovadoras',
+  //   description: 'Descubre ideas de negocio con IA.',
+  //   images: ['/tu-imagen-twitter.png'], // URL absoluta o relativa a /public
+  // },
+};
 
 export default function RootLayout({
   children,

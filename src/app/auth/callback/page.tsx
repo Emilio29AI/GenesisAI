@@ -32,7 +32,7 @@ export default function AuthCallbackPage() {
         const originalAction = searchParams.get('original_action');
         console.log(`[AuthCallback - page.tsx] Query params leídos: nextPath='${nextPath}', originalAction='${originalAction}'`);
 
-        let finalRedirectTarget = nextPath || '/generate/idea'; // Fallback si 'next' no está
+        let finalRedirectTarget = nextPath || '/generate-idea'; // Fallback si 'next' no está
         const finalRedirectParams = new URLSearchParams();
         finalRedirectParams.append('afterLogin', 'true');
 
